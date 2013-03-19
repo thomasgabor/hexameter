@@ -1,8 +1,8 @@
+require "serialize"
 
 module(..., package.seeall)
 
 local defaultspheres = {"flagging"}
-
 
 local function equal(a, b)
     if type(a) == type(b) then
@@ -17,6 +17,21 @@ local function equal(a, b)
         return a == b
     end
     return false
+end
+
+function filter(item, pattern)
+    local meta = {}
+    local newitem = {}
+    if type(item) == "table" then
+        for key,val in pairs(item) do
+            if type(key) == "string" and string.match(key, pattern) then
+                meta[key] = val
+            else
+                newitem[key] = val
+            end
+        end
+    end
+    return newitem, meta
 end
 
 local spaces = {
@@ -75,32 +90,35 @@ local spheres = {
     flagging = function (continuation)
         return function (msgtype, parameter, author, space)
             local response = {}
+            local requested = false
+            local answered = false
             for i,item in ipairs(parameter) do
-                local flags = {}
-                local newitem = {}
-                if type(item) == "table" then
-                    for key,val in pairs(item) do
-                        if type(key) == "string" and string.match(key, "^#") then
-                            flags[key] = val
-                        else
-                            newitem[key] = val
-                        end
-                    end
-                end
+                requested = true
+                local newitem, flags = filter(item, "^#")
                 local answers = continuation(msgtype, {newitem}, author, space)
-                if not answers then return answers end
-                for a,answer in ipairs(answers) do
-                    local newanswer = {}
-                    for key,val in pairs(answer) do
-                        newanswer[key] = val
+                if answers then
+                    answered = true
+                    for a,answer in ipairs(answers) do
+                        local newanswer = {}
+                        for key,val in pairs(answer) do
+                            newanswer[key] = val
+                        end
+                        for key,val in pairs(flags) do
+                            newanswer[key] = val
+                        end
+                        table.insert(response, newanswer)
                     end
-                    for key,val in pairs(flags) do
-                        newanswer[key] = val
-                    end
-                    table.insert(response, newanswer)
                 end
             end
-            return response
+            if requested then
+                if answered then
+                    return response
+                else
+                    return nil
+                end
+            else
+                return continuation(msgtype, parameter, author, space)
+            end
         end
     end
 }

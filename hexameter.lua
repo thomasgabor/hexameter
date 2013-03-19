@@ -14,14 +14,19 @@ local networking = function (continuation)
         if type == "ack" then
             net.acks[author] = net.acks[author] or {}
             net.acks[author][space] = net.acks[author][space] or {}
-            table.insert(net.acks[author][space], parameter)
+            local answered = false
+            for i,item in ipairs(parameter) do
+                table.insert(net.acks[author][space], item)
+                answered = true
+            end
+            if not answered then table.insert(net.acks[author][space], {}) end
             return nil
         end
         if space == "net.friends" then
             if type == "qry" or type == "get" then
                 local response = {}
                 for i,filter in ipairs(parameter) do
-                    for component,active in ipairs(net.friends) do
+                    for component,active in pairs(net.friends) do
                         if active == filter.active then 
                             if string.match(component, filter.name) then
                                 if type == "get" then
@@ -36,7 +41,9 @@ local networking = function (continuation)
             end
             if type == "put" then
                 for i,item in ipairs(parameter) do
-                    net.friends[item.name] = item.active or nil
+                    if item.name then
+                        net.friends[item.name] = item.active or nil
+                    end
                 end
                 return parameter
             end
@@ -45,10 +52,51 @@ local networking = function (continuation)
     end
 end
 
+local forwarding = function (continuation)
+    return function (msgtype, parameter, author, space)
+        local response = {}
+        local requested = false
+        local answered = false
+        for i,item in ipairs(parameter) do
+            local newitem, directions = behavior.filter(item, "^!") --fill in filter function
+            if directions["!recipient"] then
+                requested = true
+                if directions["!recipient"] == me() then
+                    local answer = continuation(msgtype, {newitem}, author, space)
+                    if answer then
+                        answered = true
+                        response[i] = answer
+                        response[i]["!author"] = me()
+                        response[i]["!recipient"] = item["!author"]
+                        response[i]["!visited"] = {}
+                    end
+                else
+                    item["!visited"] = (type(item["!visited"]) == "table") and item["!visited"] or {}
+                    item["!visited"][me()] = true
+                    for friend,active in pairs(net.friends) do
+                        if active and not item["!visited"][friend] then
+                            local success = medium.message(msgtype, friend, space, {item})
+                        end
+                    end
+                end
+            end
+        end
+        if requested then
+            if answered then
+                return response
+            else
+                return nil
+            end
+        else
+            return continuation(msgtype, parameter, author, space)
+        end
+    end
+end
+
 --  basic functionality  -----------------------------------------------------------------------------------------------
 
 function init(name, callback, codename)
-    behavior.init(callback, {networking, "flagging", "verbose"}) --make this more flexible!
+    behavior.init(callback, {networking, forwarding, "flagging", "verbose"}) --make this more flexible!
     return medium.init(name, behavior.process, nil, codename)
 end
 

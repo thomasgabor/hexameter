@@ -25,7 +25,8 @@ end
 hexameter.init(me)
 target = me
 
-local commands = {
+local commands --needed for the reference from inside the table's functions
+commands = {
     lua = function (argument)
         loadstring(argument)()
     end,
@@ -48,6 +49,13 @@ local commands = {
         --hexameter.term()
         os.exit()
     end,
+    meet = function (argument)
+        commands.target(argument)
+        hexameter.meet(target)
+    end,
+    friends = function ()
+        print("==  ", serialize.data(hexameter.friends()))
+    end,
     check = function (argument)
         local parameter, space = extract(argument)
         local result = hexameter.ask("qry", me, space, {parameter})
@@ -58,8 +66,10 @@ local commands = {
 commands.l = commands.lua
 commands.t = commands.target
 commands.q = commands.quit
+commands.m = commands.meet
 commands.re = commands.respond
 commands.ch = commands.check
+commands.fs = commands.friends
 
 while true do
     io.write("[", me, "] for [", target, "]> ")
@@ -69,6 +79,6 @@ while true do
     if commands[command] then
         commands[command](argument)
     else
-        io.write("##  unrecognized command \"", command, "\"\n")
+        io.write("##  unrecognized command \"", command or "<none>", "\"\n")
     end
 end
