@@ -56,9 +56,14 @@ commands = {
     friends = function ()
         print("==  ", serialize.data(hexameter.friends()))
     end,
-    check = function (argument)
+    checkex = function (argument)
         local parameter, space = extract(argument)
         local result = hexameter.ask("qry", me, space, {parameter})
+        print("++  ", serialize.data(result))
+    end,
+    check = function (argument)
+        local parameter, space = extract(argument)
+        local result = hexameter.process("qry", target, space, {parameter})
         print("++  ", serialize.data(result))
     end
 }
@@ -70,6 +75,7 @@ commands.m = commands.meet
 commands.re = commands.respond
 commands.ch = commands.check
 commands.fs = commands.friends
+commands.ch = commands.check
 
 while true do
     io.write("[", me, "] for [", target, "]> ")

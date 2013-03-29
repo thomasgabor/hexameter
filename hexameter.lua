@@ -111,6 +111,9 @@ end
 
 respond = medium.respond
 
+process = function(type, recipient, space, parameter)
+    return behavior.process(type, parameter, recipient, space)
+end
 
 
 --  patterns  ----------------------------------------------------------------------------------------------------------

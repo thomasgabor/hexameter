@@ -37,7 +37,7 @@ local codes = {
 function init(name, callback, network, codename)
     context = zmq.init(1)
     self = name or "localhost:"..defaultport
-    port = string.match(self, "[%w%p]*:") and string.gsub(self, "[%w%p]*:", "") or defaultport
+    port = string.match(self, "^[%w%p]*:") and string.gsub(self, "^[%w%p]*:", "") or defaultport
     processor = callback or function (type, parameter, author, space)
         if type == "ack" then
             return nil
@@ -87,6 +87,9 @@ function respond(tries)
 	local socket = context:socket(zmq.REP)
 	socket:bind("tcp://*:"..port)
 	local msg = nil
+	if tries == 0 then
+		msg = socket:recv()
+	end
 	local i = 0
 	while not msg and i < tries do
 		msg = socket:recv(zmq.NOBLOCK)

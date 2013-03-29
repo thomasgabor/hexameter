@@ -4,6 +4,8 @@ module(..., package.seeall)
 
 local defaultspheres = {"flagging"}
 
+local me, tell, ask
+
 local function equal(a, b)
     if type(a) == type(b) then
         if type(a) == "table" then
@@ -124,13 +126,16 @@ local spheres = {
 }
 
 
-process = function () error("spondeios processing not initialized!") end
+local processor = function () error("spondeios processing not initialized!") end
 
+function process(...)
+    return processor(unpack(arg))
+end
 
 function init(character, wrappers)
-    process = (spaces[character] or (type(character) == "function" and character) or spaces.memory)()
+    processor = (spaces[character] or (type(character) == "function" and character) or spaces.memory)()
     wrappers = wrappers or defaultspheres
     for i,wrapper in ipairs(wrappers) do
-        process = (spheres[wrapper] or (type(wrapper) == "function" and wrapper) or spheres.id)(process)
+        processor = (spheres[wrapper] or (type(wrapper) == "function" and wrapper) or spheres.id)(processor)
     end
 end
