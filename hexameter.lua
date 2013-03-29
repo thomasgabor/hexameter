@@ -8,18 +8,16 @@ module(..., package.seeall)
 
 -- network management --------------------------------------------------------------------------------------------------
 
-local net = {friends={}, acks={}}
+local net = {friends={}, desires={}}
 local networking = function (continuation)
     return function (type, parameter, author, space)
         if type == "ack" then
-            net.acks[author] = net.acks[author] or {}
-            net.acks[author][space] = net.acks[author][space] or {}
             local answered = false
-            for i,item in ipairs(parameter) do
-                table.insert(net.acks[author][space], item)
-                answered = true
+            for desire,answers in pairs(net.desires) do
+                if desire(parameter, author, space) then
+                    table.insert(answers, parameter)
+                end
             end
-            if not answered then table.insert(net.acks[author][space], {}) end
             return nil
         end
         if space == "net.friends" then
@@ -133,20 +131,32 @@ function friends()
     return net.friends
 end
 
+function await(predicate)
+    net.desires[predicate] = {}
+    return predicate
+end
+
+function fetch(key)
+    return net.desires[key]
+end
+
+function giveup(key)
+    net.desires[key] = nil
+end
+
 function ask(type, recipient, space, parameter) --enjambement
+    local key = await(function(_, author, respace)
+        return recipient == author and space == respace --insert better check for match
+    end)
     local sent = tell(type, recipient, space, parameter)
     local response = false
     while sent and not response do
         respond()
-        if net.acks[recipient] and net.acks[recipient][space] then
-            for i,answer in ipairs(net.acks[recipient][space]) do
-                if true then --insert check for match
-                    net.acks[recipient][space][i] = nil
-                    response = answer --change, should also be able to collect ALL answers
-                end
-            end
+        for a,answer in ipairs(fetch(key)) do
+            response = answer --collect answers later
         end
     end
+    giveup(key)
     return response
 end
 
