@@ -1,16 +1,43 @@
 local print = print
-local string = string
 
-local medium = require "daktylos"
+local string = string
+local type = type
+
+local medium   = require "daktylos"
 local behavior = require "spondeios"
 
 module(..., package.seeall)
 
+local defaultport    = 55555
+local defaultspheres = {"networking", "forwarding", "flagging", "verbose"}
+
 --  basic functionality  -----------------------------------------------------------------------------------------------
 
-function init(name, callback, codename)
-    behavior.init(me, medium.message, callback, {"networking", "forwarding", "flagging", "verbose"}) --make this more flexible!
-    return medium.init(name, behavior.process, nil, codename)
+local self
+
+function init(name, callback, spheres, codename)
+    local network
+    if type(name) == "string" then
+        if string.match(name, ":") then
+            self = name
+            network = nil
+        else
+            self = name..":"..defaultport
+            network = nil
+        end
+    elseif type(name) == "number" then
+        self = "localhost:"..name
+        network = nil
+    elseif type(name) == "function" then
+        self = name()
+        network = name
+    else
+        self = "localhost:"..defaultport
+        network = nil
+    end
+    local bsuccess = behavior.init(self,   medium.message, callback, spheres or defaultspheres)
+    local msuccess =   medium.init(self, behavior.process, codename, network)
+    return msuccess, bsuccess
 end
 
 function term()
@@ -22,6 +49,10 @@ function tell(type, recipient, space, parameter)
     return medium.message(type, recipient, space, parameter)
 end
 
+function me()
+    return self
+end
+
 respond = medium.respond
 
 process = function(type, recipient, space, parameter)
@@ -29,11 +60,7 @@ process = function(type, recipient, space, parameter)
 end
 
 
---  patterns  ----------------------------------------------------------------------------------------------------------
-
-function me()
-    return medium.me()
-end
+--  communication patterns  --------------------------------------------------------------------------------------------
 
 function meet(component)
     put(me(), "net.friends", {{name=component, active=true}})
@@ -53,7 +80,7 @@ function ask(type, recipient, space, parameter) --enjambement
     while sent and not response do
         respond()
         for a,answer in ipairs(behavior.fetch(key)) do
-            response = answer --collect answers later
+            response = answer --TODO: collect answers later
         end
     end
     behavior.giveup(key)

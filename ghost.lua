@@ -65,6 +65,15 @@ commands = {
         local parameter, space = extract(argument)
         local result = hexameter.process("qry", target, space, {parameter})
         print("++  ", serialize.data(result))
+    end,
+    help = function ()
+        io.write("~~  available commands: help")
+        for name,command in pairs(commands) do
+            if not (name == "help") then
+                io.write(", "..name)
+            end
+        end
+        io.write("\n")
     end
 }
 

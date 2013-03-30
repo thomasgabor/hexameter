@@ -1,5 +1,7 @@
 local print = print
+
 local string = string
+local type = type
 
 local zmq = require "zmq"
 
@@ -8,11 +10,14 @@ local serialize = require ("serialize")
 
 module(..., package.seeall)
 
-local context, self, port, processor, resolver, coder
-
 local recvtries  = 100000 --magic number achieved through tests
 local defaultport = 55555
 local defaultcode = "json"
+
+local context, self, port, processor, resolver, coder
+
+
+--  basic function library  --------------------------------------------------------------------------------------------
 
 local function address(component)
 	if type(component) == "string" then
@@ -34,7 +39,10 @@ local codes = {
     json = json
 }
 
-function init(name, callback, network, codename)
+
+--  external interface  ------------------------------------------------------------------------------------------------
+
+function init(name, callback, codename, network)
     context = zmq.init(1)
     self = name or "localhost:"..defaultport
     port = string.match(self, "^[%w%p]*:") and string.gsub(self, "^[%w%p]*:", "") or defaultport
@@ -98,7 +106,7 @@ function respond(tries)
     socket:close()
 	if msg then
 		local codename = string.match(msg, "^(%w*)\n") or ""
-		assert(codes[codename], "received message with invalid encoding \""..codename.."\"") --make more tolerant later
+		assert(codes[codename], "received message with invalid encoding \""..codename.."\"") --TODO: make more tolerant later?
 		if msg then
 			--print(">>>>", msg)
 			local mess = codes[codename].decode(string.gsub(msg, "^(%w*)\n", ""))

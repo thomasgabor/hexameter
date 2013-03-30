@@ -1,10 +1,10 @@
-require "serialize"
+local serialize = require "serialize"
 
 module(..., package.seeall)
 
 local defaultspheres = {"flagging"}
 
-local me, message
+local self, message
 
 
 --  tool functions  ----------------------------------------------------------------------------------------------------
@@ -91,7 +91,7 @@ local spheres = {
     end,
     verbose = function (continuation)
         return function (type, parameter, author, space)
-            print("--  [received "..type.."]  ", serialize.data(parameter))
+            print("--  [received "..type.."]  ", serialize.literal(parameter))
             print("--                  @", space, " from ", author)
             return continuation(type, parameter, author, space)
         end
@@ -218,8 +218,11 @@ local spheres = {
 local processor = function () error("spondeios processing not initialized!") end
 
 function init(name, msg, character, wrappers)
-    me = name
-    message = msg
+    self = name or "localhost"
+    message = msg or function (type, recipient, space, parameter)
+        process(type, parameter, recipient, space)
+        return true
+    end
     processor = (spaces[character] or (type(character) == "function" and character) or spaces.memory)()
     wrappers = wrappers or defaultspheres
     for i,wrapper in ipairs(wrappers) do
@@ -246,4 +249,8 @@ end
 
 function giveup(key)
     net.desires[key] = nil
+end
+
+function me()
+    return self
 end

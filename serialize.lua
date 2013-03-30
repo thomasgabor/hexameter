@@ -1,7 +1,7 @@
 -- this script is used by distributed.lua
 -- usage ---------------------------------------------------------------------------------
 -- provides a simple serializer                                                         --
--- EXPORTS: serialize, command                                                          --
+-- EXPORTS: serialize, command, data, print, literal                                    --
 ------------------------------------------------------------------------------------------
 local type = type
 local string = string
@@ -64,4 +64,21 @@ function print(...)
 		printargs[i] = data(param)
 	end
 	return stdprint(unpack(printargs))
+end
+
+function literal(expr)
+    if type(expr) == "number" or type(expr) == "boolean" then
+		return tostring(expr)
+	elseif type(expr) == "string" then
+		return string.format("%q", expr)
+	elseif type(expr) == "table" then
+        local l = "{ "
+		for key,val in pairs(expr) do
+            l = l.."["..literal(key).."]="..literal(val)..", "
+        end
+        l = l.." }"
+        return l
+	else
+		error("cannot serialize "..type(expr))
+	end
 end
