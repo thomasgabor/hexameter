@@ -1,4 +1,3 @@
--- this script is used by distributed.lua
 -- usage ---------------------------------------------------------------------------------
 -- provides a simple serializer                                                         --
 -- EXPORTS: serialize, command, data, print, literal                                    --
@@ -66,7 +65,10 @@ function print(...)
 	return stdprint(unpack(printargs))
 end
 
-function literal(expr)
+function literal(expr, handler)
+    handler = handler or function (expr)
+        return error("cannot serialize "..type(expr))
+    end
     if type(expr) == "number" or type(expr) == "boolean" then
 		return tostring(expr)
 	elseif type(expr) == "string" then
@@ -79,6 +81,10 @@ function literal(expr)
         l = l.." }"
         return l
 	else
-		error("cannot serialize "..type(expr))
+		handler(expr)
 	end
+end
+
+function presentation(expr)
+    return literal(expr, tostring)
 end

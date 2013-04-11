@@ -2,7 +2,7 @@ local serialize = require "serialize"
 
 module(..., package.seeall)
 
-local defaultspheres = {"flagging"}
+local defaultspheres = {"networking", "flagging"}
 
 local self, message
 

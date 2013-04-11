@@ -1,7 +1,11 @@
 require "hexameter"
 require "serialize"
+local show = serialize.presentation
+
 
 local me
+
+local auto = {} --unique value
 
 world = {
     brick = {
@@ -28,9 +32,72 @@ world = {
         },
         state = {
             x = 5,
+            y = 5,
+            performed = {}
+        },
+        tick = {},
+        tocked = false
+    }
+}
+
+local conversation = {
+    type = "conversation",
+    measure = function (me, world)
+        for _,thing in pairs(world) do
+            if not thing == me then
+                return thing.state.performed
+            end
+        end
+        return {}
+    end
+}
+
+local performance = {
+    type = "performance",
+    run = function (me, _, control)
+        me.state.performed = control.actions or {}
+        return me
+    end
+}
+
+local move = {
+    type = "move",
+    run = function(me, _, control)
+        if control.up then
+            me.state.y = me.state.y + 1
+        end
+        if control.down then
+            me.state.y = me.state.y - 1
+        end
+        if control.right then
+            me.state.x = me.state.x + 1
+        end
+        if control.left then
+            me.state.x = me.state.x - 1
+        end
+        return me
+    end
+}
+
+world = {
+    diogenes = {
+        sensors = {conversation},
+        motors = {move, perform},
+        state = {
+            x = 1,
+            y = 1
+        },
+        tick = {},
+        tocked = false
+    },
+    alexander = {
+        sensors = {conversation},
+        motors = {move, perform},
+        state = {
+            x = 5,
             y = 5
         },
-        tick = false,
+        tick = {},
         tocked = false
     }
 }
@@ -47,7 +114,14 @@ local time = function ()
                 for s,sensor in pairs(world[item.body].sensors) do
                     if item.type and sensor.type == item.type then
                         --TODO: check for tock, wait for untock?
-                        table.insert(response, {body=item.body, type=sensor.type, value=sensor.measure(world[item.body], world)})
+                        table.insert(
+                            response,
+                            {
+                                body=item.body,
+                                type=sensor.type,
+                                value=sensor.measure(world[item.body], world, item.control or {})
+                            }
+                        )
                     end
                 end
             end
@@ -57,12 +131,24 @@ local time = function ()
             for i,item in ipairs(parameter) do
                 for m,motor in pairs(world[item.body].motors) do
                     if item.type and motor.type == item.type then
-                        table.insert(next, function () world[item.body] = motor.run(world[item.body], world) end)
+                        --world[item.body].next = world[item.body].next or {}--needed later
+                        table.insert(
+                            next,
+                            function ()
+                                world[item.body] = motor.run(world[item.body], world, item.control or {})
+                            end
+                        )
                     end
                 end
             end
         end
-        if msgtype == "put" and string.match(space, "^tocks") then
+        if msgtype == "put" and string.match(space, "^ticks") then
+            for i,item in ipairs(parameter) do
+                world[item.body].tick = world[item.body].tick or {}
+                world[item.body].tick[item.soul] = item.space or "hades.ticks"
+            end
+        end
+        if msgtype == "put" and string.match(space, "^tocks") then --maybe implement command to set to auto
             for i,item in ipairs(parameter) do
                 world[item.body].tocked = true
             end
@@ -92,9 +178,12 @@ io.write("Hades running. Please exit with Ctrl+C.\n")
 
 while true do
     hexameter.respond(0)
+    print("**  current friends:", serialize.literal(hexameter.friends()))
     local alltocked = true
     for t,thing in pairs(world) do
-        alltocked = alltocked and thing.tocked
+        if not (thing.tocked == auto) then
+          alltocked = alltocked and thing.tocked
+        end
     end
     if alltocked then
         clock = clock + 1
@@ -103,10 +192,19 @@ while true do
             action()
         end
         for t,thing in pairs(world) do
-            thing.tocked = false
+            if not (thing.tocked == auto) then
+                thing.tocked = false
+            end
             io.write("  state of "..t.."\n")
-            io.write("     "..serialize.data(thing.state).."\n")
+            io.write("     "..serialize.presentation(thing.state).."\n")
         end
         next = {}
+        for t,thing in pairs(world) do
+            for address,space in pairs(thing.tick) do
+                if space then
+                    hexameter.put(address, space, {period = clock})
+                end
+            end
+        end
     end
 end

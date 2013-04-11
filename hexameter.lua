@@ -46,6 +46,9 @@ end
 
 function tell(type, recipient, space, parameter)
     assert(type == "get" or type == "qry" or type == "put", "Wrong message type \""..type.."\"")
+    if recipient == me() then
+        return process(type, recipient, space, parameter)
+    end
     return medium.message(type, recipient, space, parameter)
 end
 
@@ -65,8 +68,14 @@ end
 function meet(component)
     put(me(), "net.friends", {{name=component, active=true}})
     local friends = ask("qry", component, "net.friends", {{name="", active=true}})
+    --print(serialize.literal(friends))
     put(me(), "net.friends", friends)
     put(component, "net.friends", {{name=me(), active=true}})
+    for f,friend in pairs(friends) do
+        if friend.active then
+            put(friend.name, "net.friends", {{name=me(), active=true}})
+        end
+    end
 end
 
 friends = behavior.friends
@@ -85,6 +94,13 @@ function ask(type, recipient, space, parameter) --enjambement
     end
     behavior.giveup(key)
     return response
+end
+
+function converse(estimate) --TODO: maybe think about this function
+    estimate = estimate or 10
+    for i=1,10 do
+        respond()
+    end
 end
 
 
