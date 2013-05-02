@@ -1,6 +1,8 @@
 --evolutionary programming over scel
 
 require "hexameter"
+require "serialize"
+local show = serialize.presentation
 
 local realm, me, body
 
@@ -45,5 +47,7 @@ while continue do
     if string.match(command, "^q") then
         continue = false
     end
+    local observation = hexameter.ask("qry", realm, "sensors", {{body=body, type="conversation"}})
+    print(show(observation))
     hexameter.put(realm, "tocks", {{body=body}})
 end

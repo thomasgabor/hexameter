@@ -45,15 +45,15 @@ local conversation = {
     measure = function (me, world)
         for _,thing in pairs(world) do
             if not thing == me then
-                return thing.state.performed
+                return thing.state.performed or {}
             end
         end
         return {}
     end
 }
 
-local performance = {
-    type = "performance",
+local perform = {
+    type = "perform",
     run = function (me, _, control)
         me.state.performed = control.actions or {}
         return me
@@ -183,6 +183,7 @@ while true do
     for t,thing in pairs(world) do
         if not (thing.tocked == auto) then
           alltocked = alltocked and thing.tocked
+          print("**  ", t, thing.tocked and " tocked" or " not tocked")
         end
     end
     if alltocked then

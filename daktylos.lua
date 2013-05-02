@@ -66,7 +66,7 @@ function term()
 end
 
 function message(type, recipient, space, parameter)
-    local msg = coder.name.."\n"
+    local msg = coder.name.."\n\n"
     msg = msg..coder.encode({
 		recipient=resolver(recipient),
 		author=resolver(self),
@@ -105,11 +105,11 @@ function respond(tries)
 	end
     socket:close()
 	if msg then
-		local codename = string.match(msg, "^(%w*)\n") or ""
+		local codename = string.match(msg, "^(%w*)\n\n") or ""
 		assert(codes[codename], "received message with invalid encoding \""..codename.."\"") --TODO: make more tolerant later?
 		if msg then
 			--print(">>>>", msg)
-			local mess = codes[codename].decode(string.gsub(msg, "^(%w*)\n", ""))
+			local mess = codes[codename].decode(string.gsub(msg, "^(%w*)\n\n", ""))
 			local resp = processor(mess.type, mess.parameter, mess.author, mess.space, mess.recipient)
 			if resp then
 				return ack(mess.author, mess.space, resp)
