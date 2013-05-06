@@ -44,7 +44,7 @@ local conversation = {
     type = "conversation",
     measure = function (me, world)
         for _,thing in pairs(world) do
-            if not thing == me then
+            if not (thing == me) then
                 return thing.state.performed or {}
             end
         end
@@ -178,7 +178,7 @@ io.write("Hades running. Please exit with Ctrl+C.\n")
 
 while true do
     hexameter.respond(0)
-    print("**  current friends:", serialize.literal(hexameter.friends()))
+    --print("**  current friends:", serialize.literal(hexameter.friends())) --command-line option to turn this on?
     local alltocked = true
     for t,thing in pairs(world) do
         if not (thing.tocked == auto) then
@@ -188,7 +188,8 @@ while true do
     end
     if alltocked then
         clock = clock + 1
-        io.write("Starting discrete time period #"..clock.."...\n")
+        io.write("\n\n\n..  Starting discrete time period #"..clock.."...\n")
+        io.write("..  .......................................\n")
         for a,action in ipairs(next) do
             action()
         end
@@ -196,14 +197,15 @@ while true do
             if not (thing.tocked == auto) then
                 thing.tocked = false
             end
-            io.write("  state of "..t.."\n")
-            io.write("     "..serialize.presentation(thing.state).."\n")
+            io.write("    state of "..t.."\n")
+            io.write("       "..serialize.presentation(thing.state).."\n")
         end
+        io.write("..  .......................................\n\n")
         next = {}
         for t,thing in pairs(world) do
             for address,space in pairs(thing.tick) do
                 if space then
-                    hexameter.put(address, space, {period = clock})
+                    hexameter.put(address, space, {{period = clock}})
                 end
             end
         end

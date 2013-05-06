@@ -1,5 +1,7 @@
 require "hexameter"
 require "serialize"
+local show = serialize.presentation
+
 
 local me, target
 
@@ -8,8 +10,12 @@ local function interpret(parameter)
 end
 
 local function multiarg(argument)
+    if not (type(argument) == "string") then
+        return argument
+    end
     local parapattern = "^%s*(%w+)%s+(.*)$"
     local args = {}
+    argument = argument.." "
     while string.match(argument, parapattern) do
         table.insert(args, (string.gsub(argument, parapattern, "%1")))
         argument = string.gsub(argument, parapattern, "%2")
@@ -35,7 +41,7 @@ end
 if arg[1] then
     me = arg[1]
 else
-    io.write("Enter an address:port for this component: ")
+    io.write("??  Enter an address:port for this component: ")
     me = io.read("*line")
 end
 
@@ -87,16 +93,17 @@ commands = {
             print("++  ", serialize.data(result))
         end,
         enter = function (argument)
-            if commands[argument] then
+            local env, focus = multiarg(argument)
+            if commands[env] then
                 if commands[environment].exit then
                     commands[environment].exit()
                 end
-                environment = argument
+                environment = env
                 if commands[environment].init then
-                    commands[environment].init()
+                    commands[environment].init(focus)
                 end
             else
-                print("## command environment \"", argument, "\" does not exist.")
+                print("## command environment \"", env, "\" does not exist.")
             end
         end,
         help = function ()
@@ -110,9 +117,12 @@ commands = {
         end
     },
     hades = {
-        init = function ()
-            io.write("?? Enter body to be controlled: ")
-            focus = io.read("*line")
+        init = function (argument)
+            focus = multiarg(argument)
+            if not focus then
+                io.write("??  Enter body to be controlled: ")
+                focus = io.read("*line")
+            end
         end,
         tock = function ()
             hexameter.tell("put", target, "tocks", {{body=focus}})
@@ -128,8 +138,11 @@ commands = {
         end,
         ["do"] = function (argument)
             local type, control = multiarg(argument)
-            hexameter.tell("put", target, "motors", {{body=focus, type=type, control=control}})
-            hexameter.tell("put", target, "motors", {{body=focus, type="perform", control={actions={type=type, control=control}}}})
+            hexameter.tell("put", target, "motors", {
+                {body=focus, type=type, control=control},
+                {body=focus, type="perform", control={actions={type=type, control=control}}}
+            })
+            --hexameter.tell("put", target, "motors", {{body=focus, type="perform", control={actions={type=type, control=control}}}})
         end
     }
 }
@@ -138,6 +151,7 @@ commands.standard.l = commands.standard.lua
 commands.standard.t = commands.standard.target
 commands.standard.q = commands.standard.quit
 commands.standard.m = commands.standard.meet
+commands.standard.e = commands.standard.enter
 commands.standard.re = commands.standard.respond
 commands.standard.ch = commands.standard.check
 commands.standard.fs = commands.standard.friends
