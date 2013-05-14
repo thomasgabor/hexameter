@@ -49,6 +49,10 @@ function tell(type, recipient, space, parameter)
     if recipient == me() then
         return process(type, recipient, space, parameter)
     end
+    if false then --TODO: integrate this with spondeios' verbose sphere
+        print("++  [sent "..type.."]  ", serialize.literal(parameter))
+        print("++                  @", space, " from ", author)
+    end
     return medium.message(type, recipient, space, parameter)
 end
 

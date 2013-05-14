@@ -7,100 +7,7 @@ local me
 
 local auto = {} --unique value
 
-world = {
-    brick = {
-        sensors = {
-            {
-                type = "meaning of life the universe and everything",
-                measure = function (me, world) return 42 end
-            }
-        },
-        motors = {
-            {
-                type = "procrastinate",
-                run = function (me)
-                    return me
-                end
-            },
-            {
-                type = "moveup",
-                run = function (me)
-                    me.state.y = me.state.y + 1
-                    return me
-                end
-            }
-        },
-        state = {
-            x = 5,
-            y = 5,
-            performed = {}
-        },
-        tick = {},
-        tocked = false
-    }
-}
-
-local conversation = {
-    type = "conversation",
-    measure = function (me, world)
-        for _,thing in pairs(world) do
-            if not (thing == me) then
-                return thing.state.performed or {}
-            end
-        end
-        return {}
-    end
-}
-
-local perform = {
-    type = "perform",
-    run = function (me, _, control)
-        me.state.performed = control.actions or {}
-        return me
-    end
-}
-
-local move = {
-    type = "move",
-    run = function(me, _, control)
-        if control.up then
-            me.state.y = me.state.y + 1
-        end
-        if control.down then
-            me.state.y = me.state.y - 1
-        end
-        if control.right then
-            me.state.x = me.state.x + 1
-        end
-        if control.left then
-            me.state.x = me.state.x - 1
-        end
-        return me
-    end
-}
-
-world = {
-    diogenes = {
-        sensors = {conversation},
-        motors = {move, perform},
-        state = {
-            x = 1,
-            y = 1
-        },
-        tick = {},
-        tocked = false
-    },
-    alexander = {
-        sensors = {conversation},
-        motors = {move, perform},
-        state = {
-            x = 5,
-            y = 5
-        },
-        tick = {},
-        tocked = false
-    }
-}
+world = nil
 
 local clock = 0
 
@@ -160,20 +67,25 @@ end
 if arg[1] then
     me = arg[1]
 else
-    io.write("Enter an address:port for this component: ")
+    io.write("??  Enter an address:port for this component: ")
     me = io.read("*line")
 end
 
 if arg[2] then
-    io.write("Loading "..arg[2].."...")
-    dofile(arg[2])
+    io.write("::  Loading "..arg[2].."...")
+    world = dofile(arg[2])
     io.write("\n")
 else
-    io.write("Using default \"magic brick world\".\n")
+    world = dofile("./scenarios/magicbrick/world.lua")
+    io.write("::  Using default \"magic brick world\".\n")
+end
+
+if not (type(world) == "table") then
+    io.write("##  World does not exist. Aborting.\n")
 end
 
 hexameter.init(me, time)
-io.write("Hades running. Please exit with Ctrl+C.\n")
+io.write("::  Hades running. Please exit with Ctrl+C.\n")
 
 
 while true do

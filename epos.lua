@@ -51,6 +51,9 @@ local story = function ()
 end
 
 hexameter.init(me, story)
+
+io.write("::  Epos running. Please exit with Ctrl+C.\n")
+
 hexameter.meet(realm)
 hexameter.converse()
 hexameter.put(realm, "ticks", {{body=body, soul=me}})

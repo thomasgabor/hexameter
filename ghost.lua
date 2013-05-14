@@ -3,7 +3,7 @@ require "serialize"
 local show = serialize.presentation
 
 
-local me, target
+local me, target, environment, focus
 
 local function interpret(parameter)
     return loadstring("return "..parameter)()
@@ -38,18 +38,6 @@ local function primitive(type)
     end
 end
 
-if arg[1] then
-    me = arg[1]
-else
-    io.write("??  Enter an address:port for this component: ")
-    me = io.read("*line")
-end
-
-hexameter.init(me)
-target = me
-environment = "standard"
-focus = ""
-
 local commands --needed for the reference from inside the table's functions
 commands = {
     standard = {
@@ -76,6 +64,7 @@ commands = {
             os.exit()
         end,
         meet = function (argument)
+            --argument = string.gsub(argument, "%s", "")
             commands.standard.target(argument)
             hexameter.meet(target)
         end,
@@ -157,6 +146,40 @@ commands.standard.ch = commands.standard.check
 commands.standard.fs = commands.standard.friends
 commands.standard.ch = commands.standard.check
 
+local function execute(input)
+    local command = string.match(input, "^(%w+)%s*")
+    local argument = string.gsub(input, "^(%w+)%s*", "")
+    if commands[environment][command] then
+        commands[environment][command](argument)
+    elseif commands["standard"][command] then
+        commands["standard"][command](argument)
+    else
+        io.write("##  unrecognized command \"", command or "<none>", "\"\n")
+    end
+end
+
+if arg[1] then
+    me = arg[1]
+else
+    io.write("??  Enter an address:port for this component: ")
+    me = io.read("*line")
+end
+
+hexameter.init(me)
+target = me
+environment = "standard"
+focus = ""
+
+if arg[2] then
+    for line in io.lines(arg[2]) do
+        if not string.match(line, "^%s*$") then
+            if not string.match(line, "^%s*#") then
+                execute(line)
+            end
+        end
+    end
+end
+
 while true do
     io.write("[", me, "] for [", target, "]> ")
     if not (environment == "standard") then
@@ -167,13 +190,5 @@ while true do
         end
     end
     local input = io.read("*line")
-    local command = string.match(input, "^(%w+)%s*")
-    local argument = string.gsub(input, "^(%w+)%s*", "")
-    if commands[environment][command] then
-        commands[environment][command](argument)
-    elseif commands["standard"][command] then
-        commands["standard"][command](argument)
-    else
-        io.write("##  unrecognized command \"", command or "<none>", "\"\n")
-    end
+    execute(input)
 end
