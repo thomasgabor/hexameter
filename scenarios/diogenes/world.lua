@@ -10,6 +10,19 @@ local conversation = {
     end
 }
 
+local excitement = {
+    type = "excitement",
+    measure = function (me, world)
+        for _,thing in pairs(world) do
+            if not (thing == me) then
+                local POI = {x = 10, y = 10}
+                local d = math.abs(thing.state.x - POI.x) + math.abs(thing.state.y - POI.y)
+                return (100-d)
+            end
+        end
+    end
+}
+
 local perform = {
     type = "perform",
     run = function (me, _, control)
@@ -39,7 +52,7 @@ local move = {
 
 world = {
     diogenes = {
-        sensors = {conversation},
+        sensors = {conversation, excitement},
         motors = {move, perform},
         state = {
             x = 1,
@@ -49,7 +62,7 @@ world = {
         tocked = false
     },
     alexander = {
-        sensors = {conversation},
+        sensors = {conversation, excitement},
         motors = {move, perform},
         state = {
             x = 5,

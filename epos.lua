@@ -27,7 +27,9 @@ else
     body = io.read("*line")
 end
 
+clock = 0 --TODO: perhaps put this inside the "story" below?
 local story = function ()
+    local repertoire = {}
     return function(msgtype, parameter, author, space)
         if msgtype == "put" and space == "hades.ticks" then
             for _,item in pairs(parameter) do
@@ -35,13 +37,20 @@ local story = function ()
             end
             --<experimental behavior>
             local observations = hexameter.ask("qry", realm, "sensors", {{body=body, type="conversation"}})
-            print(show(observations))
+            local excitement   = hexameter.ask("qry", realm, "sensors", {{body=body, type="excitement"}})
+            print("**  [observed excite]  ", show(excitement))
+            print("**  [observed action]  ", show(observations))
             for _,observation in pairs(observations) do
                 if observation.value.type then
-                    hexameter.tell("put", realm, "motors", {
-                        {body=body, type=observation.value.type, control=observation.value.control}
+                    table.insert(repertoire, 1, {
+                        action = {body=body, type=observation.value.type, control=observation.value.control},
+                        excitement = excitement
                     })
                 end
+            end
+            --TODO: add missing functionality to check for excitement of own position.
+            if repertoire[1] then
+                hexameter.tell("put", realm, "motors", {repertoire[1].action})
             end
             os.execute("sleep 1") --TODO: WHY is this necessary???
             hexameter.tell("put", realm, "tocks", {{body=body}})
@@ -61,7 +70,6 @@ hexameter.converse()
 hexameter.put(realm, "tocks", {{body=body}})
 
 
-clock = 0
 local continue = false
 while continue do
     hexameter.converse()

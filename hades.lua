@@ -95,7 +95,7 @@ while true do
     for t,thing in pairs(world) do
         if not (thing.tocked == auto) then
           alltocked = alltocked and thing.tocked
-          print("**  ", t, thing.tocked and " tocked" or " not tocked")
+          print("**  [tock status] ", t, thing.tocked and " tocked" or " not tocked")
         end
     end
     if alltocked then
