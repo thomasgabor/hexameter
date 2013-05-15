@@ -30,6 +30,7 @@ end
 clock = 0 --TODO: perhaps put this inside the "story" below?
 local story = function ()
     local repertoire = {}
+    --local aspiration = 0
     return function(msgtype, parameter, author, space)
         if msgtype == "put" and space == "hades.ticks" then
             for _,item in pairs(parameter) do
@@ -37,15 +38,17 @@ local story = function ()
             end
             --<experimental behavior>
             local observations = hexameter.ask("qry", realm, "sensors", {{body=body, type="conversation"}})
-            local excitement   = hexameter.ask("qry", realm, "sensors", {{body=body, type="excitement"}})
+            local excitement   = hexameter.ask("qry", realm, "sensors", {{body=body, type="excitement"}})[1].value
             print("**  [observed excite]  ", show(excitement))
             print("**  [observed action]  ", show(observations))
             for _,observation in pairs(observations) do
                 if observation.value.type then
-                    table.insert(repertoire, 1, {
-                        action = {body=body, type=observation.value.type, control=observation.value.control},
-                        excitement = excitement
-                    })
+                    if excitement > (repertoire[1] and repertoire[1].excitement or 0) then
+                        table.insert(repertoire, 1, {
+                            action = {body=body, type=observation.value.type, control=observation.value.control},
+                            excitement = excitement
+                        })
+                    end
                 end
             end
             --TODO: add missing functionality to check for excitement of own position.
