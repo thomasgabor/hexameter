@@ -1,3 +1,5 @@
+--GHOST hands-on scel terminal
+
 require "hexameter"
 require "serialize"
 local show = serialize.presentation

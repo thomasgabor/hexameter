@@ -1,3 +1,5 @@
+--HADES a discrete environment simulator
+
 require "hexameter"
 require "serialize"
 local show = serialize.presentation

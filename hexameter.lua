@@ -1,12 +1,15 @@
-local print = print
-
-local string = string
-local type = type
-
 local medium   = require "daktylos"
 local behavior = require "spondeios"
 
-module(..., package.seeall)
+local string = string
+
+local type = type
+local assert = assert
+local pairs = pairs
+local ipairs = ipairs
+local print = print
+
+module(...)
 
 local defaultport    = 55555
 local defaultspheres = {"networking", "forwarding", "flagging", "verbose"}

@@ -4,7 +4,7 @@ require "hexameter"
 require "serialize"
 local show = serialize.presentation
 
-local realm, me, body, clock
+local realm, me, body
 
 if arg[1] then
     realm = arg[1]
@@ -27,8 +27,8 @@ else
     body = io.read("*line")
 end
 
-clock = 0 --TODO: perhaps put this inside the "story" below?
 local story = function ()
+    local clock = 0
     local repertoire = {}
     --local aspiration = 0
     return function(msgtype, parameter, author, space)
@@ -76,7 +76,7 @@ hexameter.put(realm, "tocks", {{body=body}})
 local continue = false
 while continue do
     hexameter.converse()
-    --io.write(clock, "> ")
+    --io.write("> ")
     --local command = io.read("*line")
     --if string.match(command, "^q") then
     --    continue = false

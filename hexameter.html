@@ -1,0 +1,146 @@
+<html>
+    <head>
+        <title>The Hexameter protocol</title>
+    </head>
+    <body>
+        <h1>The Hexameter protocol</h1>
+        <h2>Interface</h2>
+        <h3>Lua</h3>
+        <dl class="object">
+            <dt>init()</dt>
+            <dd>
+                <p>
+                    Starts Hexameter communication.
+                </p>
+                <em>parameters:</em>
+                <dl class="parameters">
+                    <dt>name</dt>
+                    <dd>
+                        Usually takes a string of the form "localhost:55555" to specify the port on which
+                        Hexameter should listen for incoming messages. Also accepts a number, which will be
+                        as a port number on localhost, or a function f(), which will be interpreted as a network naming
+                        function with f() = f(nil) being the name and port of the running component.
+                        Uses "localhost:55555" if left nil.
+                    </dd>
+                    <dt>callback</dt>
+                    <dd>
+                        Takes a "space function", i.e. a function which (when called) returns another function, which
+                        accepts incoming messages and returns the corresponding (ack-typed) answers. Also accepts a
+                        string, which will be interpreted as a name for a pre-defined space function from
+                        <em>spondeios'</em> respective library. If left nil, this parameter is equivalent to "memory".
+                    </dd>
+                    <dt>spheres</dt>
+                    <dd>
+                        <strong>Usually left nil.</strong>
+                        Takes a list (numerically indexed table) of strings or "sphere functions" (possibly mixed).
+                        The latter are functions which generate a wrapper for message processing according to the
+                        specification of <em>spondeios</em>. Any string inside the list will be interpreted as the name
+                        of a pre-defined sphere function from <em>spondeios</em>. If left nil, defaults to
+                        <code>{"networking", "forwarding", "flagging", "verbose"}</code> in the development versions.
+                    </dd>    
+                    <dt>codename</dt>
+                    <dd>
+                        <strong>Usually left nil.</strong>
+                        Takes a string which specifies the message en-/decoding mechanism to use amongst the ones
+                        specified in <em>daktylos</em>. Uses "json" if left nil.
+                    </dd>
+                </dl>
+            </dd>
+            <dt>term()</dt>
+            <dd>
+                <p>
+                    Stops Hexameter communication.
+                </p>
+            </dd>
+            <dt>tell()</dt>
+            <dd>
+                <p>
+                    Sends a SCEL message.
+                </p>
+                <em>parameters:</em>
+                <dl class="parameters">
+                    <dt>type</dt>
+                    <dd>
+                        Takes a string representing the SCEL type of the message (i.e. "put", "get", "qry") or "ack".
+                    </dd>
+                    <dt>recipient</dt>
+                    <dd>
+                        The network name of the addressed component. Usually a string of the form "192.168.0.1:55555" unless a
+                        special naming function is specified.
+                    </dd>
+                    <dt>space</dt>
+                    <dd>
+                        The target space of the receiving component, given as a string.
+                    </dd>
+                    <dt>parameter</dt>
+                    <dd>
+                        The content of the message, can be any Lua value that can be serialized by the current
+                        <em>daktylos</em> setup. Usually, this will be a tuple (lua table) at the top level.
+                    </dd>
+                </dl>
+            </dd>
+            <dt>me()</dt>
+            <dd>
+                <p>
+                    Returns the name of the running component (i.e. this component) in the Hexameter network.
+                </p>
+            </dd>
+            <dt>respond()</dt>
+            <dd>
+                <p>
+                    Causes Hexameter to try to process and respond to a currently pending message.
+                </p>
+                <em>parameters:</em>
+                <dl class="parameters">
+                    <dt>tries</dt>
+                    <dd>
+                        <strong>Usually left nil.</strong>
+                        Takes a number which specifies how many times Hexameter attempts to receive a pending message
+                        via the 0MQ non-blocking receive mechanism, which has a veyr low success rate. If the parameter
+                        is 0, Hexameter will (non-busily) wait until a new message is received. If left nil, currently
+                        defaults to 100000, but this number is not subject to Hexameter's specification and may be
+                        changed at any time.
+                    </dd>
+                </dl>
+            </dd>
+        </dl>
+        <p>
+            The following function implement common communication patterns and shortcuts, but can be built out of
+            the above Hexameter base functions.
+        </p>
+        <dl>
+            <dt>meet()</dt>
+            <dd>
+                <p>
+                    Establish a mutual connection with a given component.
+                </p>
+                <em>parameters:</em>
+                <dl class="parameters">
+                    <dt>component</dt>
+                    <dd>
+                        Takes a string with the name of another network component.
+                    </dd>
+                </dl>
+            </dd>
+            <dt>friends()</dt>
+            <dd>
+                <p>
+                    Returns a list of network names of components with which a mutual connection was established.
+                </p>
+            </dd>
+            <dt>ask()</dt>
+            <dd>
+                <p>
+                    Sends a SCEL message (just like <code>tell()</code>), but waits for the respective answer of that
+                    component and returns it.
+                </p>
+                <em>parameters:</em> exactly the same as <code>tell()</code>
+            </dd>
+        </dl>
+        <h3>Racket</h3>
+        <p>
+            Since Racket allows for multithreading, <code>init()</code> needs to return a session object, which then
+            provides all other functions specified here.
+        </p>
+    </body>
+</html>

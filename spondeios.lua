@@ -1,6 +1,15 @@
 local serialize = require "serialize"
 
-module(..., package.seeall)
+local string = string
+local table = table
+
+local type = type
+local pairs = pairs
+local ipairs = ipairs
+local unpack = unpack
+local print = print
+
+module(...)
 
 local defaultspheres = {"networking", "flagging"}
 

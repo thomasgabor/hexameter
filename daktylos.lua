@@ -1,14 +1,15 @@
-local print = print
+local zmq = require "zmq"
+local json = require "dkjson"
+local serialize = require "serialize"
 
 local string = string
+
 local type = type
+local assert = assert
+local loadstring = loadstring
+--local print = print
 
-local zmq = require "zmq"
-
-local json = require ("dkjson")
-local serialize = require ("serialize")
-
-module(..., package.seeall)
+module(...)
 
 local recvtries  = 100000 --magic number achieved through tests
 local defaultport = 55555
@@ -108,7 +109,6 @@ function respond(tries)
 		local codename = string.match(msg, "^(%w*)\n\n") or ""
 		assert(codes[codename], "received message with invalid encoding \""..codename.."\"") --TODO: make more tolerant later?
 		if msg then
-			--print(">>>>", msg)
 			local mess = codes[codename].decode(string.gsub(msg, "^(%w*)\n\n", ""))
 			local resp = processor(mess.type, mess.parameter, mess.author, mess.space, mess.recipient)
 			if resp then
