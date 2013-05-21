@@ -1,6 +1,90 @@
 <html>
     <head>
         <title>The Hexameter protocol</title>
+        <style type="text/css">
+            body
+            {
+                width: 80%;
+                min-width: 25em;
+                max-width: 50em;
+                margin-left: auto;
+                margin-right: auto;
+            
+                font-family: sans-serif;
+            }
+            
+            h1
+            {
+                background-color: #FF8800;
+                text-align: center;
+            }
+            
+            h2
+            {
+                border: 2px solid #FF8800;
+                text-align: center;
+            }
+            
+            h3
+            {
+                border-bottom: 2px dashed #FF8800;
+                
+                color: #FF8800;
+            }
+            
+            dl.object > dt, dl.object > dd
+            {
+                border-left: 2px solid #888888;
+                border-right: 2px solid #888888;
+            }
+            
+            dl.object > dt
+            {
+                margin-bottom: 0;
+                padding-left: 1em;
+                padding-top: 8px;
+                padding-bottom: 8px;
+                
+                font-family: monospace;
+                font-size: 1.2em;
+            }
+            
+            dl.object > dt:first-child
+            {
+                border-top: 2px dashed #888888;
+            }
+            
+            dl.object > dd
+            {
+                margin-left: 0;
+                margin-top: -1em;
+                padding-left: 8em;
+                padding-right: 3em;
+                border-bottom: 2px dashed #888888;
+            }
+            
+            .parameters:before
+            {
+                content: "parameters:";
+                color: #FF8800;
+                font-style: italic; 
+            }
+            
+            dl.parameters > dt
+            {
+                margin-top: 1em;
+                color: #888888;
+                font-family: monospace;
+                font-size: 1.2em;
+            }
+            
+            dl.parameters > dd
+            {
+                margin-left: 0;
+                padding-left: 0;
+            }
+            
+        </style>
     </head>
     <body>
         <h1>The Hexameter protocol</h1>
@@ -12,7 +96,6 @@
                 <p>
                     Starts Hexameter communication.
                 </p>
-                <em>parameters:</em>
                 <dl class="parameters">
                     <dt>name</dt>
                     <dd>
@@ -57,7 +140,6 @@
                 <p>
                     Sends a SCEL message.
                 </p>
-                <em>parameters:</em>
                 <dl class="parameters">
                     <dt>type</dt>
                     <dd>
@@ -90,7 +172,6 @@
                 <p>
                     Causes Hexameter to try to process and respond to a currently pending message.
                 </p>
-                <em>parameters:</em>
                 <dl class="parameters">
                     <dt>tries</dt>
                     <dd>
@@ -108,13 +189,12 @@
             The following function implement common communication patterns and shortcuts, but can be built out of
             the above Hexameter base functions.
         </p>
-        <dl>
+        <dl class="object">
             <dt>meet()</dt>
             <dd>
                 <p>
                     Establish a mutual connection with a given component.
                 </p>
-                <em>parameters:</em>
                 <dl class="parameters">
                     <dt>component</dt>
                     <dd>
@@ -134,7 +214,9 @@
                     Sends a SCEL message (just like <code>tell()</code>), but waits for the respective answer of that
                     component and returns it.
                 </p>
-                <em>parameters:</em> exactly the same as <code>tell()</code>
+                <p class="parameters">
+                    exactly the same as <code>tell()</code>
+                </p>
             </dd>
         </dl>
         <h3>Racket</h3>
