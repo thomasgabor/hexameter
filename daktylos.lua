@@ -4,6 +4,7 @@ local serialize = require "serialize"
 
 local string = string
 
+local error = error
 local type = type
 local assert = assert
 local loadstring = loadstring
@@ -27,7 +28,7 @@ local function address(component)
 	if type(component) == "number" then
 		return "localhost:"..component
 	end
-	error()
+	error("Given argument "..serialize.presentation(component).." is not a address.")
 end
 
 local codes = {

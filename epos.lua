@@ -4,7 +4,7 @@ require "hexameter"
 require "serialize"
 local show = serialize.presentation
 
-local realm, me, body
+local realm, me, body, character
 
 if arg[1] then
     realm = arg[1]
@@ -27,6 +27,15 @@ else
     body = io.read("*line")
 end
 
+if arg[4] then
+    io.write("::  Loading "..arg[4].."...")
+    character = dofile(arg[4])(realm, me, body)
+    io.write("\n")
+else
+    character = function () end
+    --TODO: implement at least a simple, but meaningful deafult behavior!
+end
+
 local story = function ()
     local clock = 0
     local repertoire = {}
@@ -36,28 +45,37 @@ local story = function ()
             for _,item in pairs(parameter) do
                 clock = item.period > clock and item.period or clock
             end
-            --<experimental behavior>
-            local observations = hexameter.ask("qry", realm, "sensors", {{body=body, type="conversation"}})
-            local excitement   = hexameter.ask("qry", realm, "sensors", {{body=body, type="excitement"}})[1].value
-            print("**  [observed excite]  ", show(excitement))
-            print("**  [observed action]  ", show(observations))
-            for _,observation in pairs(observations) do
-                if observation.value.type then
-                    if excitement > (repertoire[1] and repertoire[1].excitement or 0) then
-                        table.insert(repertoire, 1, {
-                            action = {body=body, type=observation.value.type, control=observation.value.control},
-                            excitement = excitement
-                        })
+            --<experimental behavior experiment="1">
+            if false then
+                local observations = hexameter.ask("qry", realm, "sensors", {{body=body, type="conversation"}})
+                local excitement   = hexameter.ask("qry", realm, "sensors", {{body=body, type="excitement"}})[1].value
+                print("**  [observed excite]  ", show(excitement))
+                print("**  [observed action]  ", show(observations))
+                for _,observation in pairs(observations) do
+                    if observation.value.type then
+                        if excitement > (repertoire[1] and repertoire[1].excitement or 0) then
+                            table.insert(repertoire, 1, {
+                                action = {body=body, type=observation.value.type, control=observation.value.control},
+                                excitement = excitement
+                            })
+                        end
                     end
                 end
+                --TODO: add missing functionality to check for excitement of own position.
+                if repertoire[1] then
+                    hexameter.tell("put", realm, "motors", {repertoire[1].action})
+                end
             end
-            --TODO: add missing functionality to check for excitement of own position.
-            if repertoire[1] then
-                hexameter.tell("put", realm, "motors", {repertoire[1].action})
+            --</experimental behavior>
+            --<experimental behavior experiment="2">
+            if false then
+                local observations = hexameter.ask("qry", realm, "sensors", {{body=body, type="conversation"}})
+                
             end
+            character(clock)
+            --</experimental behavior>
             os.execute("sleep 1") --TODO: WHY is this necessary???
             hexameter.tell("put", realm, "tocks", {{body=body}})
-            --</experimental behavior>
         end
     end
 end
