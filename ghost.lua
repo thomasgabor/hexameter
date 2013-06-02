@@ -134,7 +134,10 @@ commands = {
                 {body=focus, type="perform", control={actions={type=type, control=control}}}
             })
             --hexameter.tell("put", target, "motors", {{body=focus, type="perform", control={actions={type=type, control=control}}}})
-        end
+        end,
+        teach = function (argument)
+            
+        end,
     }
 }
 

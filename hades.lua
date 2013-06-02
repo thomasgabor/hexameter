@@ -59,6 +59,7 @@ local time = function ()
         end
         if msgtype == "put" and string.match(space, "^tocks") then --maybe implement command to set to auto
             for i,item in ipairs(parameter) do
+                --TODO: check for non-existing item/body in world
                 world[item.body].tocked = true
             end
         end
@@ -84,6 +85,14 @@ end
 
 if not (type(world) == "table") then
     io.write("##  World does not exist. Aborting.\n")
+end
+
+for t,thing in pairs(world) do
+    thing.sensors = thing.sensors or {}
+    thing.motors = thing.motors or {}
+    thing.state = thing.state or {}
+    thing.tick = thing.tick or {}
+    thing.tocked = thing.tocked or false
 end
 
 hexameter.init(me, time)
