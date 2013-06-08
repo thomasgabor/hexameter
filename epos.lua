@@ -38,7 +38,7 @@ end
 
 local story = function ()
     local clock = 0
-    local repertoire = {}
+    --local repertoire = {}
     --local aspiration = 0
     return function(msgtype, parameter, author, space)
         if msgtype == "put" and space == "hades.ticks" then
@@ -72,9 +72,9 @@ local story = function ()
                 local observations = hexameter.ask("qry", realm, "sensors", {{body=body, type="conversation"}})
                 
             end
-            character(clock)
             --</experimental behavior>
-            os.execute("sleep 1") --TODO: WHY is this necessary???
+            character(clock)
+            os.execute("sleep 1") --TODO: WHY is this necessary??? Probably because of request/reply stuff, see 0MQ book
             hexameter.tell("put", realm, "tocks", {{body=body}})
         end
     end

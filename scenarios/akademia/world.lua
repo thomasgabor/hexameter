@@ -1,46 +1,24 @@
-local conversation = {
-    type = "conversation",
+local remember = {
+    type = "remember",
     measure = function (me, world)
-        for _,thing in pairs(world) do
-            if not (thing == me) then
-                return thing.state.performed or {}
-            end
-        end
-        return {}
+        return me.state.methexis or {}
     end
 }
 
-local social = {
-    type = "social",
-    measure = function (me, world)
-        local observations = {}
-        for name,thing in pairs(world) do
-            if not (thing == me)
-                table.insert(observations, {body=name, action=thing.state.performed or {}})
+local spot = {
+    type = "spot",
+    measure = function (me, world, control)
+        local horizon = control.horizon or 10
+        local spotted = {}
+        for name,body in pairs(world) do
+            --TODO: spotting should work in squares, but it's a fine approximation for now
+            if not (body == me) then
+                if (math.abs(body.state.x - me.state.x) <= horizon) or (math.abs(body.state.y - me.state.y) <= horizon) then
+                    table.insert(spotted, name)
+                end
             end
         end
-        return observations
-    end
-}
-
-local excitement = {
-    type = "excitement",
-    measure = function (me, world)
-        for _,thing in pairs(world) do
-            if not (thing == me) then
-                local POI = {x = 10, y = 10}
-                local d = math.abs(thing.state.x - POI.x) + math.abs(thing.state.y - POI.y)
-                return (100-d)
-            end
-        end
-    end
-}
-
-local perform = {
-    type = "perform",
-    run = function (me, _, control)
-        me.state.performed = control.actions or {}
-        return me
+        return spotted
     end
 }
 
@@ -65,30 +43,19 @@ local move = {
 
 local teach = {
     type = "teach",
-    run = function(me, world, control)
-        if control.target then
-            world[control.target].state.repertoire = world[control.target].state.repertoire or {}
-            table.insert(world[control.target].state.repertoire, 1, control.action)
+    run = function (me, world, control)
+        local targets
+        if control.target and world[control.target] and control.idea then
+            targets = {control.target}
+        elseif control.targets and control.idea then
+            targets = control.targets
+        else --assumes every body with teach also has spot, TODO: make an API to efficiently check that
+            targets = spot.measure(me, world, {horizon = control.horizon or nil})
         end
-        return me
-    end
-}
-
-local act = {
-    type = "act",
-    run = function(me, world, control)
-        if me.state.repertoire and me.state.repertoire[1] then
-            local acted = false
-            local i = 1
-            while not acted do
-                if not me.state.repertoire[i] then
-                    i = 1
-                end
-                if math.random() < 0.5 then
-                    acted = me.state.repertoire[i]()
-                end
-                i = i + 1
-            end
+        for t,target in ipairs(targets) do
+            local disciple = world[target]
+            disciple.state.methexis = disciple.state.methexis or {}
+            table.insert(disciple.state.methexis, 1, {topic=control.idea, fame=me.state.fame or 0})
         end
         return me
     end
@@ -96,24 +63,22 @@ local act = {
 
 world = {
     platon = {
-        sensors = {social, conversation, excitement},
-        motors = {move, perform, teach, act},
+        sensors = {remember},
+        motors = {move, teach},
         state = {
             x = 1,
-            y = 1
-        },
-        --tick = {},
-        --tocked = false
+            y = 1,
+            fame = 10
+        }
     },
     math1 = {
-        sensors = {social, conversation, excitement},
-        motors = {move, perform, teach, act},
+        sensors = {remember},
+        motors = {move, teach},
         state = {
             x = 5,
-            y = 5
-        },
-        --tick = {},
-        --tocked = false
+            y = 5,
+            fame = 1
+        }
     }
 }
 

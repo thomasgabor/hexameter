@@ -4,14 +4,14 @@ require "hexameter"
 require "serialize"
 local show = serialize.presentation
 
-
+local commands
 local me, target, environment, focus
 
 local function interpret(parameter)
     return loadstring("return "..parameter)()
 end
 
-local function multiarg(argument)
+function multiarg(argument)
     if not (type(argument) == "string") then
         return argument
     end
@@ -28,7 +28,7 @@ local function multiarg(argument)
     return unpack(args)
 end
 
-local function extract(argument)
+function extract(argument)
     local parameter,space = string.match(argument, "^%s*(.+)%s*@%s*(.+)%s*$")
     return interpret(parameter), space
 end
@@ -40,11 +40,44 @@ local function primitive(type)
     end
 end
 
-local commands --needed for the reference from inside the table's functions
+local function execute(input)
+    local command = string.match(input, "^(%w+)%s*")
+    local argument = string.gsub(input, "^(%w+)%s*", "")
+    local call = commands[environment][command] or commands["standard"][command] or commands["user"][command]
+    if type(call) == "function" then
+        call(argument, me, target, environment, focus)
+    else
+        io.write("##  unrecognized command \"", command or "<none>", "\"\n")
+    end
+end
+
+local function run(file)
+    local buffer = ""
+    local top = true
+    for line in io.lines(file) do
+        if not string.match(line, "^%s*$") then
+            if not string.match(line, "^%s*#") then
+                if string.match(line, "^%s*//") then
+                    top = false
+                elseif string.match(line, "%s*\\\\") then
+                    execute(buffer)
+                    top = true
+                else
+                    if top then
+                        execute(line)
+                    else
+                        buffer = buffer..line.."\n"
+                    end
+                end
+            end
+        end
+    end
+end
+
 commands = {
     standard = {
         lua = function (argument)
-            loadstring(argument)()
+            print("%%  ", loadstring("return "..argument)())
         end,
         target = function (argument)
             if string.match(argument, "^%s*$") then
@@ -105,8 +138,17 @@ commands = {
                 end
             end
             io.write("\n")
+        end,
+        define = function (argument)
+            local name, body = multiarg(argument)
+            commands.user[name] = body
+        end,
+        include = function(argument)
+            print("::  Loading "..argument.."...")
+            run(argument)
         end
     },
+    user = {},
     hades = {
         init = function (argument)
             focus = multiarg(argument)
@@ -127,6 +169,8 @@ commands = {
             local type, control = multiarg(argument)
             hexameter.tell("put", target, "motors", {{body=focus, type=type, control=control}})
         end,
+        --from here on, these are specific commands to control specific motors, which may or may not be available thorugh hades
+        --TODO: put these commands in external libraries, which are loaded by ghost commands in the scenarios' respective prooimion/greeting scripts
         ["do"] = function (argument)
             local type, control = multiarg(argument)
             hexameter.tell("put", target, "motors", {
@@ -135,9 +179,11 @@ commands = {
             })
             --hexameter.tell("put", target, "motors", {{body=focus, type="perform", control={actions={type=type, control=control}}}})
         end,
-        teach = function (argument)
-            
-        end,
+        --you'll find this in the greeting.ghost now!
+        --teach = function (argument)
+        --    local action, control = multiarg(argument)
+        --    hexameter.tell("put", target, "motors", {{body=focus, type="teach", control={idea={action=action, control=control}}}})
+        --end
     }
 }
 
@@ -150,18 +196,8 @@ commands.standard.re = commands.standard.respond
 commands.standard.ch = commands.standard.check
 commands.standard.fs = commands.standard.friends
 commands.standard.ch = commands.standard.check
-
-local function execute(input)
-    local command = string.match(input, "^(%w+)%s*")
-    local argument = string.gsub(input, "^(%w+)%s*", "")
-    if commands[environment][command] then
-        commands[environment][command](argument)
-    elseif commands["standard"][command] then
-        commands["standard"][command](argument)
-    else
-        io.write("##  unrecognized command \"", command or "<none>", "\"\n")
-    end
-end
+commands.standard.def = commands.standard.define
+commands.standard.inc = commands.standard.include
 
 if arg[1] then
     me = arg[1]
@@ -176,13 +212,7 @@ environment = "standard"
 focus = ""
 
 if arg[2] then
-    for line in io.lines(arg[2]) do
-        if not string.match(line, "^%s*$") then
-            if not string.match(line, "^%s*#") then
-                execute(line)
-            end
-        end
-    end
+    run(arg[2])
 end
 
 while true do
