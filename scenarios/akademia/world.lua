@@ -79,6 +79,15 @@ world = {
             y = 5,
             fame = 1
         }
+    },
+    math2 = {
+        sensors = {remember},
+        motors = {move, teach},
+        state = {
+            x = 7,
+            y = 7,
+            fame = 1
+        }
     }
 }
 

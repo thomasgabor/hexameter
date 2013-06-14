@@ -4,7 +4,14 @@ require "hexameter"
 require "serialize"
 local show = serialize.presentation
 
-local realm, me, body, character
+local possess = {} --unique flag
+local avoid = {}   --unique flag
+
+local realm, me, character
+
+local bodies = {}
+local souls = {}
+local allsouls = false
 
 if arg[1] then
     realm = arg[1]
@@ -21,61 +28,63 @@ else
 end
 
 if arg[3] then
-    body = arg[3]
+    for part in string.gmatch(arg[3]..",", "([^,]*),") do
+        if not (part == "") then
+            if part == "..." then
+                allsouls = true
+            else
+                local firstchar = string.match(part, "^(.)")
+                local name = string.gsub(part, "^[-\+]", "")
+                if firstchar == "-" then
+                    souls[name] = avoid
+                else
+                    souls[part] = possess
+                end
+            end
+        end
+    end
+    local bodystr = ""
+    local beginning = true
+    bodystr = bodystr..(allsouls and "all bodies except " or "bodies ")
+    for name,rule in pairs(souls) do
+        if (allsouls and (rule == avoid) or (rule == possess)) then
+            bodystr = bodystr..(beginning and "" or ", ")..name
+            beginning = false
+        end
+    end
+    io.write("::  Controlling "..bodystr..".\n")
 else
-    io.write("??  Enter the name of this component's body: ")
-    body = io.read("*line")
+    allsouls = true
+    io.write("::  Controlling all bodies by default.\n")
 end
 
 if arg[4] then
     io.write("::  Loading "..arg[4].."...")
-    character = dofile(arg[4])(realm, me, body)
+    character = dofile(arg[4])(realm, me)
     io.write("\n")
 else
     character = function () end
-    --TODO: implement at least a simple, but meaningful deafult behavior!
+    --TODO: implement at least a simple, but meaningful default behavior!
 end
 
 local story = function ()
     local clock = 0
-    --local repertoire = {}
-    --local aspiration = 0
     return function(msgtype, parameter, author, space)
         if msgtype == "put" and space == "hades.ticks" then
             for _,item in pairs(parameter) do
                 clock = item.period > clock and item.period or clock
             end
-            --<experimental behavior experiment="1">
-            if false then
-                local observations = hexameter.ask("qry", realm, "sensors", {{body=body, type="conversation"}})
-                local excitement   = hexameter.ask("qry", realm, "sensors", {{body=body, type="excitement"}})[1].value
-                print("**  [observed excite]  ", show(excitement))
-                print("**  [observed action]  ", show(observations))
-                for _,observation in pairs(observations) do
-                    if observation.value.type then
-                        if excitement > (repertoire[1] and repertoire[1].excitement or 0) then
-                            table.insert(repertoire, 1, {
-                                action = {body=body, type=observation.value.type, control=observation.value.control},
-                                excitement = excitement
-                            })
-                        end
-                    end
-                end
-                --TODO: add missing functionality to check for excitement of own position.
-                if repertoire[1] then
-                    hexameter.tell("put", realm, "motors", {repertoire[1].action})
+            for name,addresses in pairs(bodies) do
+                if (allsouls and not (souls[name] == avoid)) or (souls[name] == possess) then
+                    print()
+                    print("::  Computing "..name)
+                    character(clock, name)
+                    os.execute("sleep 1") --TODO: WHY is this necessary??? Probably because of request/reply stuff, see 0MQ book
+                    hexameter.tell("put", realm, "tocks", {{body=name}})
+                    hexameter.converse()
                 end
             end
-            --</experimental behavior>
-            --<experimental behavior experiment="2">
-            if false then
-                local observations = hexameter.ask("qry", realm, "sensors", {{body=body, type="conversation"}})
-                
-            end
-            --</experimental behavior>
-            character(clock)
-            os.execute("sleep 1") --TODO: WHY is this necessary??? Probably because of request/reply stuff, see 0MQ book
-            hexameter.tell("put", realm, "tocks", {{body=body}})
+
         end
     end
 end
@@ -86,31 +95,17 @@ io.write("::  Epos running. Please exit with Ctrl+C.\n")
 
 hexameter.meet(realm)
 hexameter.converse()
-hexameter.put(realm, "ticks", {{body=body, soul=me}})
-hexameter.converse()
-hexameter.put(realm, "tocks", {{body=body}})
 
+bodies = hexameter.ask("qry", realm, "report", {{}})[1].bodies --TODO: Hardcoding [1] is probably a bit hacky
+io.write("##  Recognized "..show(bodies).."\n")
 
-local continue = false
-while continue do
-    hexameter.converse()
-    --io.write("> ")
-    --local command = io.read("*line")
-    --if string.match(command, "^q") then
-    --    continue = false
-    --end
-    local observations = hexameter.ask("qry", realm, "sensors", {{body=body, type="conversation"}})
-    print(show(observations))
-    for _,observation in pairs(observations) do
-        if observation.value.type then
-            hexameter.tell("put", realm, "motors", {
-                {body=body, type=observation.value.type, control=observation.value.control}
-            })
-        end
+for name,addresses in pairs(bodies) do
+    if (allsouls and not (souls[name] == avoid)) or (souls[name] == possess) then
+        hexameter.put(realm, "ticks", {{body=name, soul=me}})
+        hexameter.converse()
+        hexameter.put(realm, "tocks", {{body=name}})
+        hexameter.converse()
     end
-    --io.write("Please press enter...") --TODO: Do not use this workaround to send batch messages!
-    --io.read("*line")
-    hexameter.put(realm, "tocks", {{body=body}})
 end
 
 while true do

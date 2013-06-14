@@ -18,6 +18,14 @@ local next = {}
 local time = function ()
     return function(msgtype, parameter, author, space)
         local response = {}
+        if (msgtype == "qry" or msgtype == "get") and string.match(space, "^report") then
+            local bodies = {}
+            for name,body in pairs(world) do
+                bodies[name] = body.tick or {} --spec: this leaves the tick space in the array, however, the client should only expect a true/false value
+            end
+            table.insert(response, {bodies=bodies})
+            return response
+        end
         if (msgtype == "qry" or msgtype == "get") and string.match(space, "^sensors") then
             for i,item in ipairs(parameter) do
                 for s,sensor in pairs(world[item.body].sensors) do
