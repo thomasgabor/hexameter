@@ -61,10 +61,48 @@ local teach = {
     end
 }
 
+local function combine(idea1, idea2)
+    local newidea = {fame = (idea1.fame + idea2.fame)/2, topic = {}}
+    for c,command in ipairs(idea1.topic) do
+        if math.random() < 0.5 then --TODO: adjust stochastic process (RNG!! Lua's sucks!)
+            table.insert(newidea.topic, command)
+        end
+    end
+    for c,command in ipairs(idea2.topic) do
+        if math.random() < 0.5 then
+            table.insert(newidea.topic, command)
+        end
+    end
+    return newidea
+end
+
+local invent = {
+    type = "invent",
+    run = function (me, world, control)
+        me.state.methexis = me.state.methexis or {}
+        for _,one in ipairs(me.state.methexis) do
+            for _,another in ipairs(me.state.methexis) do
+                if math.random() < 0.5 then
+                    --table.insert(me.state.methexis, 1, combine(one, another))--TODO: something is really strange with this insert!! It doesn't return! (wtf?)
+                end
+            end
+        end
+        table.insert(me.state.methexis, 1, {topic={{action="procrastinate"}}, fame=100})
+        return me
+    end
+}
+
+local procrastinate = {
+    type = "procrastinate",
+    run = function (me, world, control)
+        return me
+    end
+}
+
 world = {
     platon = {
-        sensors = {remember},
-        motors = {move, teach},
+        sensors = {remember, spot},
+        motors = {move, teach, invent, procrastinate},
         state = {
             x = 1,
             y = 1,
@@ -72,8 +110,8 @@ world = {
         }
     },
     math1 = {
-        sensors = {remember},
-        motors = {move, teach},
+        sensors = {remember, spot},
+        motors = {move, teach, invent, procrastinate},
         state = {
             x = 5,
             y = 5,
@@ -81,8 +119,8 @@ world = {
         }
     },
     math2 = {
-        sensors = {remember},
-        motors = {move, teach},
+        sensors = {remember, spot},
+        motors = {move, teach, invent, procrastinate},
         state = {
             x = 7,
             y = 7,

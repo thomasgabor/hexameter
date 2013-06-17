@@ -3,7 +3,7 @@ meet localhost:55555
 //
 define teach function(argument, me, target, environment, focus)
     local action, control = multiarg(argument)
-    hexameter.tell("put", target, "motors", {{body=focus, type="teach", control={idea={action=action, control=control}}}})
+    hexameter.tell("put", target, "motors", {{body=focus, type="teach", control={idea={{action=action, control=control}}}}})
 end
 \\
 enter hades platon
