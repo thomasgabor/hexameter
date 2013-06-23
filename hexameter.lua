@@ -1,5 +1,7 @@
 local medium   = require "daktylos"
 local behavior = require "spondeios"
+local serialize = require "serialize"
+
 
 local string = string
 
@@ -52,9 +54,9 @@ function tell(type, recipient, space, parameter)
     if recipient == me() then
         return process(type, recipient, space, parameter)
     end
-    if false then --TODO: integrate this with spondeios' verbose sphere
+    if true then --TODO: integrate this with spondeios' verbose sphere
         print("++  [sent "..type.."]  ", serialize.literal(parameter))
-        print("++                  @", space, " from ", author)
+        print("++                  @", space, " to ", recipient)
     end
     return medium.message(type, recipient, space, parameter)
 end

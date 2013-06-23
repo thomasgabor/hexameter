@@ -1,7 +1,7 @@
 --TODO: do something about the RNG, Lua's one sucks
 
 local rates = {
-    recombination = 0.1
+    recombination = 0.5
 }
 
 require "serialize"
@@ -29,6 +29,7 @@ return function(realm, me)
                     table.insert(commands, {body=body, type="invent"})
                 end
                 hexameter.tell("put", realm, "motors", commands)
+                hexameter.converse()
                 done = true
             end
         end

@@ -79,7 +79,8 @@ local story = function ()
                     print()
                     print("::  Computing "..name)
                     character(clock, name)
-                    os.execute("sleep 1") --TODO: WHY is this necessary??? Probably because of request/reply stuff, see 0MQ book
+                    --os.execute("sleep 1") --TODO: WHY is this necessary??? Probably because of request/reply stuff, see 0MQ book
+                    hexameter.converse()
                     hexameter.tell("put", realm, "tocks", {{body=name}})
                     hexameter.converse()
                 end

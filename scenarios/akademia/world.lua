@@ -1,3 +1,6 @@
+require "serialize"
+local show = serialize.presentation
+
 local remember = {
     type = "remember",
     measure = function (me, world)
@@ -63,31 +66,53 @@ local teach = {
 
 local function combine(idea1, idea2)
     local newidea = {fame = (idea1.fame + idea2.fame)/2, topic = {}}
+    local used1 = false
+    local usednotall1 = false
+    local used2 = false
+    local usednotall2 = false
     for c,command in ipairs(idea1.topic) do
         if math.random() < 0.5 then --TODO: adjust stochastic process (RNG!! Lua's sucks!)
             table.insert(newidea.topic, command)
+            used1 = true
+        else
+            usednotall1 = true
         end
     end
     for c,command in ipairs(idea2.topic) do
         if math.random() < 0.5 then
             table.insert(newidea.topic, command)
+            used2 = true
+        else
+            usednotall2 = true
         end
     end
-    return newidea
+    if (used1 and used2) or notusedall1 or notusedall2 then
+        return newidea
+    else
+        return nil --process fails here, consider just restrating it?
+    end
 end
 
 local invent = {
     type = "invent",
     run = function (me, world, control)
         me.state.methexis = me.state.methexis or {}
+        local newideas = {}
         for _,one in ipairs(me.state.methexis) do
             for _,another in ipairs(me.state.methexis) do
                 if math.random() < 0.5 then
-                    --table.insert(me.state.methexis, 1, combine(one, another))--TODO: something is really strange with this insert!! It doesn't return! (wtf?)
+                    local newidea = combine(one,another)
+                    if newidea and (#(newidea.topic) > 0) then
+                        --print("$$  combined: ", show(newidea))
+                        table.insert(newideas, 1, newidea)
+                    end
                 end
             end
         end
-        table.insert(me.state.methexis, 1, {topic={{action="procrastinate"}}, fame=100})
+        --table.insert(me.state.methexis, 1, {topic={{action="procrastinate"}}, fame=100})
+        for _,newidea in ipairs(newideas) do
+            table.insert(me.state.methexis, 1, newidea)
+        end
         return me
     end
 }

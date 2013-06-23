@@ -6,6 +6,7 @@ local show = serialize.presentation
 
 local commands
 local me, target, environment, focus
+local hiddenvars = {}
 
 local function interpret(parameter)
     return loadstring("return "..parameter)()
@@ -28,6 +29,10 @@ function multiarg(argument)
     return unpack(args)
 end
 
+function dualarg(argument)
+    return string.match(argument, "%s*(%S+)%s+(%S+)%s*$")
+end
+
 function extract(argument)
     local parameter,space = string.match(argument, "^%s*(.+)%s*@%s*(.+)%s*$")
     return interpret(parameter), space
@@ -45,7 +50,7 @@ local function execute(input)
     local argument = string.gsub(input, "^(%w+)%s*", "")
     local call = commands[environment][command] or commands["standard"][command] or commands["user"][command]
     if type(call) == "function" then
-        call(argument, me, target, environment, focus)
+        call(argument, me, target, environment, focus, hiddenvars)
     else
         io.write("##  unrecognized command \"", command or "<none>", "\"\n")
     end
@@ -61,6 +66,7 @@ local function run(file)
                     top = false
                 elseif string.match(line, "%s*\\\\") then
                     execute(buffer)
+                    buffer = ""
                     top = true
                 else
                     if top then
@@ -109,12 +115,12 @@ commands = {
         checkex = function (argument)
             local parameter, space = extract(argument)
             local result = hexameter.ask("qry", me, space, {parameter})
-            print("++  ", serialize.data(result))
+            print("^^  ", serialize.data(result))
         end,
         check = function (argument)
             local parameter, space = extract(argument)
             local result = hexameter.process("qry", target, space, {parameter})
-            print("++  ", serialize.data(result))
+            print("^^  ", serialize.data(result))
         end,
         enter = function (argument)
             local env, focus = multiarg(argument)
@@ -142,6 +148,10 @@ commands = {
         define = function (argument)
             local name, body = multiarg(argument)
             commands.user[name] = body
+        end,
+        alt = function (argument) --TODO: augment this with error messages in cases in which it doesn't work as expected!
+            local original,new = dualarg(argument)
+            commands.user[new] = commands.user[original]
         end,
         include = function(argument)
             print("::  Loading "..argument.."...")
