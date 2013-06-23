@@ -95,10 +95,33 @@ if not (type(world) == "table") then
     io.write("##  World does not exist. Aborting.\n")
 end
 
+--TODO: Add correctness check for world definition, i.e.
+--      - "sensors" and "motors" field match the data structure, contain only one of each "type"
+--      - all parts from "using" do actually exist
+
+sensor = function(me, type, control)
+    for _,sensor in pairs(me.sensors) do
+        if type == sensor.type then
+            return sensor.measure(me, world, control or {})
+        end
+    end
+    return nil
+end
+
+motor = function(me, type, control)
+    for _,motor in pairs(me.motors) do
+        if type == motor.type then
+            return motor.run(me, world, control or {})
+        end
+    end
+    return nil
+end
+
 for t,thing in pairs(world) do
     thing.sensors = thing.sensors or {}
     thing.motors = thing.motors or {}
     thing.state = thing.state or {}
+    thing.time = thing.time or {}
     thing.tick = thing.tick or {}
     thing.tocked = thing.tocked or false
 end
@@ -121,6 +144,11 @@ while true do
         clock = clock + 1
         io.write("\n\n\n..  Starting discrete time period #"..clock.."...\n")
         io.write("..  .......................................\n")
+        for t,thing in pairs(world) do
+            for p,process in pairs(thing.time) do
+                process.run(thing, world, clock)
+            end
+        end
         for a,action in ipairs(next) do
             action()
         end

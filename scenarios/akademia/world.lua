@@ -1,8 +1,29 @@
 require "serialize"
 local show = serialize.presentation
 
+local settings = {
+    rates = {
+        invent = 0.5,
+        combine = 0.5,
+        praiseshare = 0.1
+    }
+}
+
+local direct = function(me, world, control) --using this function makes you use "spot" sensor!
+    local targets
+    if control.target and world[control.target] then
+        targets = {control.target}
+    elseif control.targets then
+        targets = control.targets
+    else
+        targets = sensor(me, "spot", {horizon = control.horizon or nil})
+    end
+    return targets
+end
+
 local remember = {
     type = "remember",
+    class = "sensor",
     measure = function (me, world)
         return me.state.methexis or {}
     end
@@ -10,6 +31,7 @@ local remember = {
 
 local spot = {
     type = "spot",
+    class = "sensor",
     measure = function (me, world, control)
         local horizon = control.horizon or 10
         local spotted = {}
@@ -27,6 +49,7 @@ local spot = {
 
 local move = {
     type = "move",
+    class = "motor",
     run = function(me, _, control)
         if control.up then
             me.state.y = me.state.y + 1
@@ -46,15 +69,13 @@ local move = {
 
 local teach = {
     type = "teach",
+    class = "motor",
+    using = {spot},
     run = function (me, world, control)
-        local targets
-        if control.target and world[control.target] and control.idea then
-            targets = {control.target}
-        elseif control.targets and control.idea then
-            targets = control.targets
-        else --assumes every body with teach also has spot, TODO: make an API to efficiently check that
-            targets = spot.measure(me, world, {horizon = control.horizon or nil})
+        if not control.idea then --could also default to "teaching nothing", i.e. {procrastinate}
+            return me
         end
+        local targets = direct(me, world, control)
         for t,target in ipairs(targets) do
             local disciple = world[target]
             disciple.state.methexis = disciple.state.methexis or {}
@@ -71,7 +92,7 @@ local function combine(idea1, idea2)
     local used2 = false
     local usednotall2 = false
     for c,command in ipairs(idea1.topic) do
-        if math.random() < 0.5 then --TODO: adjust stochastic process (RNG!! Lua's sucks!)
+        if math.random() < settings.rates.combine then --TODO: adjust stochastic process (RNG!! Lua's sucks!)
             table.insert(newidea.topic, command)
             used1 = true
         else
@@ -79,8 +100,8 @@ local function combine(idea1, idea2)
         end
     end
     for c,command in ipairs(idea2.topic) do
-        if math.random() < 0.5 then
-            table.insert(newidea.topic, command)
+        if math.random() < settings.rates.combine then
+            table.insert(newidea.topic, command) --TODO: handle mutliple, identical commands
             used2 = true
         else
             usednotall2 = true
@@ -95,12 +116,13 @@ end
 
 local invent = {
     type = "invent",
+    class = "motor",
     run = function (me, world, control)
         me.state.methexis = me.state.methexis or {}
         local newideas = {}
         for _,one in ipairs(me.state.methexis) do
             for _,another in ipairs(me.state.methexis) do
-                if math.random() < 0.5 then
+                if math.random() < settings.rates.invent then
                     local newidea = combine(one,another)
                     if newidea and (#(newidea.topic) > 0) then
                         --print("$$  combined: ", show(newidea))
@@ -119,7 +141,21 @@ local invent = {
 
 local procrastinate = {
     type = "procrastinate",
+    class = "motor",
     run = function (me, world, control)
+        return me
+    end
+}
+
+local applaud = {
+    type = "applaud",
+    class = "motor",
+    run = function (me, world, control)
+        local targets = direct(me, world, control)
+        for t,target in ipairs(targets) do
+            local recipient = world[target]
+            recipient.state.fame = recipient.state.fame + math.ceil(me.state.fame * settings.rates.praiseshare)
+        end
         return me
     end
 }
@@ -127,16 +163,17 @@ local procrastinate = {
 world = {
     platon = {
         sensors = {remember, spot},
-        motors = {move, teach, invent, procrastinate},
+        motors = {move, teach, invent, procrastinate, applaud},
         state = {
             x = 1,
             y = 1,
             fame = 10
-        }
+        },
+        time = {{run=function(me,world,period) me.state.fame = me.state.fame + 1 end}}
     },
     math1 = {
         sensors = {remember, spot},
-        motors = {move, teach, invent, procrastinate},
+        motors = {move, teach, invent, procrastinate, applaud},
         state = {
             x = 5,
             y = 5,
@@ -145,7 +182,7 @@ world = {
     },
     math2 = {
         sensors = {remember, spot},
-        motors = {move, teach, invent, procrastinate},
+        motors = {move, teach, invent, procrastinate, applaud},
         state = {
             x = 7,
             y = 7,
