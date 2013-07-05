@@ -18,6 +18,14 @@ local next = {}
 local time = function ()
     return function(msgtype, parameter, author, space)
         local response = {}
+        if (msgtype == "qry" or msgtype == "get") and string.match(space, "^state") then
+            local state = {}
+            for name,body in pairs(world) do
+                state[name] = body.state or {}
+            end
+            table.insert(response, state)
+            return response
+        end
         if (msgtype == "qry" or msgtype == "get") and string.match(space, "^report") then
             local bodies = {}
             for name,body in pairs(world) do
