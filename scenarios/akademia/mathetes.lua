@@ -29,7 +29,7 @@ return function(realm, me)
                     table.insert(commands, {body=body, type="invent"})
                 end
                 hexameter.tell("put", realm, "motors", commands)
-                hexameter.converse()
+                --hexameter.converse()
                 done = true
             end
         end

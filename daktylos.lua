@@ -16,7 +16,7 @@ local recvtries  = 100000 --magic number achieved through tests
 local defaultport = 55555
 local defaultcode = "json"
 
-local context, self, port, processor, resolver, coder
+local context, self, port, processor, resolver, coder, respondsocket
 
 
 --  basic function library  --------------------------------------------------------------------------------------------
@@ -61,9 +61,12 @@ function init(name, callback, codename, network)
     codename = codename or defaultcode
     coder = codes[codename]
     coder.name = codename
+	respondsocket = context:socket(zmq.ROUTER)
+	respondsocket:bind("tcp://*:"..port)
 end
 
 function term()
+    respondsocket:close()
 	context:term()
 end
 
@@ -94,18 +97,25 @@ end
 
 function respond(tries)
     tries = tries or recvtries
-	local socket = context:socket(zmq.REP)
-	socket:bind("tcp://*:"..port)
-	local msg = nil
+	local src, del, msg --deliberately set to nil
 	if tries == 0 then
-		msg = socket:recv()
+	    src = respondsocket:recv()
+		del = respondsocket:recv()
+		msg = respondsocket:recv()
 	end
 	local i = 0
-	while not msg and i < tries do
-		msg = socket:recv(zmq.NOBLOCK)
+	local noblockrecv = false
+	while (not msg) and (not noblockrecv) and i < tries do
+		src = respondsocket:recv(zmq.NOBLOCK)
+		if src then
+		    noblockrecv = true
+		end
 		i = i + 1
 	end
-    socket:close()
+	if noblockrecv then
+	    del = respondsocket:recv()
+		msg = respondsocket:recv()
+	end
 	if msg then
 		local codename = string.match(msg, "^(%w*)\n\n") or ""
 		assert(codes[codename], "received message with invalid encoding \""..codename.."\"") --TODO: make more tolerant later?
