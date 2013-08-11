@@ -71,21 +71,27 @@ local story = function ()
     local clock = 0
     return function(msgtype, parameter, author, space)
         if msgtype == "put" and space == "hades.ticks" then
+            local newclock = clock
             for _,item in pairs(parameter) do
-                clock = item.period > clock and item.period or clock
+                newclock = item.period > newclock and item.period or newclock
             end
-            for name,addresses in pairs(bodies) do
-                if (allsouls and not (souls[name] == avoid)) or (souls[name] == possess) then
-                    print()
-                    print("::  Computing "..name)
-                    character(clock, name)
-                    --os.execute("sleep 1") --TODO: WHY is this necessary??? Probably because of request/reply stuff, see 0MQ book
-                    --hexameter.converse()
-                    hexameter.tell("put", realm, "tocks", {{body=name}})
-                    --hexameter.converse()
+            if newclock > clock then
+                clock = newclock
+                print()
+                print()
+                print("::  Entering time period #"..clock)
+                for name,addresses in pairs(bodies) do
+                    if (allsouls and not (souls[name] == avoid)) or (souls[name] == possess) then
+                        print()
+                        print("::  Computing "..name)
+                        character(clock, name)
+                        --os.execute("sleep 1") --TODO: WHY is this necessary??? Probably because of request/reply stuff, see 0MQ book
+                        --hexameter.converse()
+                        hexameter.tell("put", realm, "tocks", {{body=name}})
+                        --hexameter.converse()
+                    end
                 end
             end
-
         end
     end
 end

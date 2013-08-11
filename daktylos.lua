@@ -3,11 +3,15 @@ local json = require "dkjson"
 local serialize = require "serialize"
 
 local string = string
+local table = table
 
 local error = error
 local type = type
 local assert = assert
 local loadstring = loadstring
+local unpack = unpack
+local ipairs = ipairs
+local pairs = pairs
 --local print = print
 
 module(...)
@@ -15,8 +19,9 @@ module(...)
 local recvtries  = 100000 --magic number achieved through tests
 local defaultport = 55555
 local defaultcode = "json"
+local socketcache = 0
 
-local context, self, port, processor, resolver, coder, respondsocket
+local context, self, port, processor, resolver, coder, respondsocket, talksockets
 
 
 --  basic function library  --------------------------------------------------------------------------------------------
@@ -63,11 +68,43 @@ function init(name, callback, codename, network)
     coder.name = codename
 	respondsocket = context:socket(zmq.ROUTER)
 	respondsocket:bind("tcp://*:"..port)
+	talksockets = {}
 end
 
 function term()
     respondsocket:close()
 	context:term()
+end
+
+local function getsocket(target)
+    if socketcache > 0 then
+		for _,talksocketdata in ipairs(talksockets) do
+			if talksocketdata.target == target then
+				return talksocketdata.socket
+			end
+		end
+		if #talksockets == socketcache then
+			talksockets[1].socket:close()
+			table.remove(talksockets, 1)
+		end
+	end
+	local socket = context:socket(zmq.DEALER)
+    --socket:setopt(zmq.LINGER, 0) --no idea why zmq binding doesn't recognize this option
+	socket:connect(target)
+	if socketcache > 0 then
+		table.insert(talksockets, {socket=socket, target=target})
+	end
+	return socket
+end
+
+local function multisend(socket, ...)
+	for i,frame in ipairs(arg) do
+		if i == #arg then
+			return socket:send(frame)
+		else
+			socket:send(frame, zmq.SNDMORE)
+		end
+	end
 end
 
 function message(type, recipient, space, parameter)
@@ -79,12 +116,10 @@ function message(type, recipient, space, parameter)
 		parameter=parameter,
 		space=space
 	})
-    local socket = context:socket(zmq.REQ)
-    --socket:setopt(zmq.LINGER, 0) --no idea why this doesn't work
-	socket:connect("tcp://"..resolver(recipient))
-	local success = socket:send(msg)
-	socket:close()
-    return success
+    local socket = getsocket("tcp://"..resolver(recipient))
+	--socket:send("", zmq.SNDMORE)
+	--return socket:send(msg)
+	return multisend(socket, "", msg)
 end
 
 function syn(recipient, space, parameter)
@@ -95,26 +130,25 @@ function ack(recipient, space, parameter)
     return message("ack", recipient, space, parameter)
 end
 
+local function multirecv(socket, recvoptions)
+	local frames = {}
+	frames[#frames+1] = socket:recv(recvoptions)
+	while socket:getopt(zmq.RCVMORE) == 1 do
+		frames[#frames+1] = socket:recv()
+	end
+	return unpack(frames)
+end
+
 function respond(tries)
     tries = tries or recvtries
 	local src, del, msg --deliberately set to nil
 	if tries == 0 then
-	    src = respondsocket:recv()
-		del = respondsocket:recv()
-		msg = respondsocket:recv()
+		src, del, msg = multirecv(respondsocket)
 	end
 	local i = 0
-	local noblockrecv = false
-	while (not msg) and (not noblockrecv) and i < tries do
-		src = respondsocket:recv(zmq.NOBLOCK)
-		if src then
-		    noblockrecv = true
-		end
+	while (not msg) and i < tries do
+		src, del, msg = multirecv(respondsocket, zmq.NOBLOCK)
 		i = i + 1
-	end
-	if noblockrecv then
-	    del = respondsocket:recv()
-		msg = respondsocket:recv()
 	end
 	if msg then
 		local codename = string.match(msg, "^(%w*)\n\n") or ""
