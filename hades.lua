@@ -76,7 +76,7 @@ local time = function ()
         if msgtype == "put" and string.match(space, "^tocks") then --maybe implement command to set to auto
             for i,item in ipairs(parameter) do
                 --TODO: check for non-existing item/body in world
-                world[item.body].tocked = true
+                world[item.body].tocked = item.duration or 1
             end
         end
         return nil --making this explicit here
@@ -131,7 +131,7 @@ for t,thing in pairs(world) do
     thing.state = thing.state or {}
     thing.time = thing.time or {}
     thing.tick = thing.tick or {}
-    thing.tocked = thing.tocked or false
+    thing.tocked = thing.tocked or 0
 end
 
 hexameter.init(me, time)
@@ -144,8 +144,8 @@ while true do
     local alltocked = true
     for t,thing in pairs(world) do
         if not (thing.tocked == auto) then
-          alltocked = alltocked and thing.tocked
-          print("**  [tock status] ", t, thing.tocked and " tocked" or " not tocked")
+          alltocked = alltocked and (thing.tocked > 0)
+          print("**  [tock status] ", t, (thing.tocked > 0) and "tocked ("..thing.tocked..")" or "not tocked")
         end
     end
     if alltocked then
@@ -162,7 +162,7 @@ while true do
         end
         for t,thing in pairs(world) do
             if not (thing.tocked == auto) then
-                thing.tocked = false
+                thing.tocked = thing.tocked - 1
             end
             io.write("    state of "..t.."\n")
             io.write("       "..serialize.presentation(thing.state).."\n")

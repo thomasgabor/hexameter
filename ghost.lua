@@ -167,8 +167,9 @@ commands = {
                 focus = io.read("*line")
             end
         end,
-        tock = function ()
-            hexameter.tell("put", target, "tocks", {{body=focus}})
+        tock = function (argument)
+            local duration = tonumber(argument)
+            hexameter.tell("put", target, "tocks", {{body=focus, duration=duration}})
         end,
         sensor = function (argument)
             local type, control = multiarg(argument)
