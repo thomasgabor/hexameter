@@ -69,7 +69,7 @@ end
 
 local story = function ()
     local clock = 0
-    return function(msgtype, parameter, author, space)
+    return function(msgtype, author, space, parameter)
         if msgtype == "put" and space == "hades.ticks" then
             local newclock = clock
             for _,item in pairs(parameter) do

@@ -16,7 +16,7 @@ local clock = 0
 local next = {}
 
 local time = function ()
-    return function(msgtype, parameter, author, space)
+    return function(msgtype, author, space, parameter)
         local response = {}
         if (msgtype == "qry" or msgtype == "get") and string.match(space, "^state") then
             local state = {}

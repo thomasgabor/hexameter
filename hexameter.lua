@@ -46,30 +46,20 @@ function init(name, callback, spheres, codename)
 end
 
 function term()
-	return medium.term()
-end
-
-function tell(type, recipient, space, parameter)
-    assert(type == "get" or type == "qry" or type == "put", "Wrong message type \""..type.."\"")
-    if recipient == me() then
-        return process(type, recipient, space, parameter)
-    end
-    if true then --TODO: integrate this with spondeios' verbose sphere
-        print("++  [sent "..type.."]  ", serialize.literal(parameter))
-        print("++                  @", space, " to ", recipient)
-    end
-    return medium.message(type, recipient, space, parameter)
+    local bsuccess = behavior.term()
+    local msuccess =   medium.term()
+    return msuccess, bsuccess
 end
 
 function me()
     return self
 end
 
+tell = behavior.act
+
 respond = medium.respond
 
-process = function(type, recipient, space, parameter)
-    return behavior.process(type, parameter, recipient, space)
-end
+process = behavior.process -- works as a shortcut for tell(me(), ...)
 
 
 --  communication patterns  --------------------------------------------------------------------------------------------
@@ -91,21 +81,19 @@ friends = behavior.friends
 
 function ask(type, recipient, space, parameter) --enjambement
     local key = behavior.await(function(_, author, respace)
-        return recipient == author and space == respace --TODO: insert better check for match
+        return recipient == author and space == respace --TODO: insert better check for match(?)
     end)
     local sent = tell(type, recipient, space, parameter)
     local response = false
     while sent and not response do
-        respond()
-        for a,answer in ipairs(behavior.fetch(key)) do
-            response = answer --TODO: collect answers later
-        end
+        respond(0)
+        response = behavior.fetch(key)
     end
     behavior.giveup(key)
     return response
 end
 
-function converse(estimate) --TODO: maybe think about this function
+function converse(estimate) --this function is a relict and should probably not be used
     estimate = estimate or 10
     for i=1,10 do
         respond()

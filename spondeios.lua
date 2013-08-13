@@ -3,7 +3,9 @@ local serialize = require "serialize"
 local string = string
 local table = table
 
+local error = error
 local type = type
+local assert = assert
 local pairs = pairs
 local ipairs = ipairs
 local unpack = unpack
@@ -48,6 +50,14 @@ local function filter(item, pattern)
     return newitem, meta
 end
 
+local function reverse(t)
+    local r = {}
+    for i,value in ipairs(t) do
+        r[#t-i+1] = value
+    end
+    return r
+end
+
 
 --  behavior library  --------------------------------------------------------------------------------------------------
 
@@ -55,13 +65,13 @@ local net = {friends={}, desires={}}
 
 local spaces = {
     trivial = function ()
-        return function(type, parameter, author, space)
+        return function(type, author, space, parameter)
             return ("answer to "..serialize.data(parameter).." from "..author.."@"..space.."\n")
         end
     end,
     memory = function ()
         local memory = {}
-        return function (type, parameter, author, space)
+        return function (type, author, space, parameter)
             memory[space] = memory[space] or {}
             if type == "get" or type == "qry" then
                 local response = {}
@@ -94,128 +104,145 @@ local spaces = {
 
 local spheres = {
     id = function (continuation)
-        return function (...)
-            return continuation(...)
+        return function (msgtype, author, space, parameter)
+            return continuation(msgtype, author, space, parameter)
         end
     end,
-    verbose = function (continuation)
-        return function (type, parameter, author, space)
-            print("--  [received "..type.."]  ", serialize.literal(parameter))
-            print("--                  @", space, " from ", author)
-            return continuation(type, parameter, author, space)
+    verbose = function (continuation, direction)
+        if direction == "in" then
+            return function (type, author, space, parameter)
+                print("--  [received "..type.."]  ", serialize.literal(parameter))
+                print("--                  @", space, " from ", author)
+                return continuation(type, author, space, parameter)
+            end
+        else
+            return function (type, recipient, space, parameter)
+                print("++  [sent "..type.."]  ", serialize.literal(parameter))
+                print("++                  @", space, " to ", recipient)
+                return continuation(type, recipient, space, parameter)
+            end
         end
     end,
-    flagging = function (continuation)
-        return function (msgtype, parameter, author, space)
-            local response = {}
-            local requested = false
-            local answered = false
-            for i,item in ipairs(parameter) do
-                requested = true
-                local newitem, flags = filter(item, "^#")
-                local answers = continuation(msgtype, {newitem}, author, space)
-                if answers then
-                    answered = true
-                    for a,answer in ipairs(answers) do
-                        local newanswer = {}
-                        for key,val in pairs(answer) do
-                            newanswer[key] = val
+    flagging = function (continuation, direction)
+        if direction == "in" then
+            return function (msgtype, author, space, parameter)
+                local response = {}
+                local requested = false
+                local answered = false
+                for i,item in ipairs(parameter) do
+                    requested = true
+                    local newitem, flags = filter(item, "^#")
+                    local answers = continuation(msgtype, author, space, {newitem})
+                    if answers then
+                        answered = true
+                        for a,answer in ipairs(answers) do
+                            local newanswer = {}
+                            for key,val in pairs(answer) do
+                                newanswer[key] = val
+                            end
+                            for key,val in pairs(flags) do
+                                newanswer[key] = val
+                            end
+                            table.insert(response, newanswer)
                         end
-                        for key,val in pairs(flags) do
-                            newanswer[key] = val
-                        end
-                        table.insert(response, newanswer)
                     end
                 end
-            end
-            if requested then
-                if answered then
-                    return response
+                if requested then
+                    if answered then
+                        return response
+                    else
+                        return nil
+                    end
                 else
+                    return continuation(msgtype, author, space, parameter)
+                end
+            end
+        end
+    end,
+    networking = function (continuation, direction)
+        if direction == "in" then
+            return function (type, author, space, parameter)
+                if type == "ack" then
+                    local answered = false
+                    for desire,answers in pairs(net.desires) do
+                        if desire(parameter, author, space) then
+                            net.desires[desire] = answers or {}
+                            for i,item in ipairs(parameter) do
+                                table.insert(net.desires[desire], item)
+                            end
+                        end
+                    end
                     return nil
                 end
-            else
-                return continuation(msgtype, parameter, author, space)
+                if space == "net.friends" then
+                    if type == "qry" or type == "get" then
+                        local response = {}
+                        for i,filter in ipairs(parameter) do
+                            for component,active in pairs(net.friends) do
+                                if active == filter.active then 
+                                    if string.match(component, filter.name) then
+                                        if type == "get" then
+                                            net.friends[component] = nil
+                                        end
+                                        table.insert(response, {name=component, active=true})
+                                    end
+                                end
+                            end
+                        end
+                        return response
+                    end
+                    if type == "put" then
+                        for i,item in ipairs(parameter) do
+                            if item.name then
+                                net.friends[item.name] = item.active or nil
+                            end
+                        end
+                        return parameter
+                    end
+                end
+                return continuation(type, author, space, parameter)
             end
         end
     end,
-    networking = function (continuation)
-        return function (type, parameter, author, space)
-            if type == "ack" then
+    forwarding = function (continuation, direction)
+        if direction == "in" then
+            return function (msgtype, author, space, parameter)
+                local response = {}
+                local requested = false
                 local answered = false
-                for desire,answers in pairs(net.desires) do
-                    if desire(parameter, author, space) then
-                        table.insert(answers, parameter)
-                    end
-                end
-                return nil
-            end
-            if space == "net.friends" then
-                if type == "qry" or type == "get" then
-                    local response = {}
-                    for i,filter in ipairs(parameter) do
-                        for component,active in pairs(net.friends) do
-                            if active == filter.active then 
-                                if string.match(component, filter.name) then
-                                    if type == "get" then
-                                        net.friends[component] = nil
-                                    end
-                                    table.insert(response, {name=component, active=true})
+                for i,item in ipairs(parameter) do
+                    local newitem, directions = filter(item, "^!")
+                    if directions["!recipient"] then
+                        requested = true
+                        if directions["!recipient"] == me() then
+                            local answer = continuation(msgtype, author, space, {newitem})
+                            if answer then
+                                answered = true
+                                response[i] = answer
+                                response[i]["!author"] = me()
+                                response[i]["!recipient"] = item["!author"]
+                                response[i]["!visited"] = {}
+                            end
+                        else
+                            item["!visited"] = (type(item["!visited"]) == "table") and item["!visited"] or {}
+                            item["!visited"][me()] = true
+                            for friend,active in pairs(net.friends) do
+                                if active and not item["!visited"][friend] then
+                                    local success = message(msgtype, friend, space, {item})
                                 end
                             end
                         end
                     end
-                    return response
                 end
-                if type == "put" then
-                    for i,item in ipairs(parameter) do
-                        if item.name then
-                            net.friends[item.name] = item.active or nil
-                        end
-                    end
-                    return parameter
-                end
-            end
-            return continuation(type, parameter, author, space)
-        end
-    end,
-    forwarding = function (continuation)
-        return function (msgtype, parameter, author, space)
-            local response = {}
-            local requested = false
-            local answered = false
-            for i,item in ipairs(parameter) do
-                local newitem, directions = filter(item, "^!")
-                if directions["!recipient"] then
-                    requested = true
-                    if directions["!recipient"] == me() then
-                        local answer = continuation(msgtype, {newitem}, author, space)
-                        if answer then
-                            answered = true
-                            response[i] = answer
-                            response[i]["!author"] = me()
-                            response[i]["!recipient"] = item["!author"]
-                            response[i]["!visited"] = {}
-                        end
+                if requested then
+                    if answered then
+                        return response
                     else
-                        item["!visited"] = (type(item["!visited"]) == "table") and item["!visited"] or {}
-                        item["!visited"][me()] = true
-                        for friend,active in pairs(net.friends) do
-                            if active and not item["!visited"][friend] then
-                                local success = message(msgtype, friend, space, {item})
-                            end
-                        end
+                        return nil
                     end
-                end
-            end
-            if requested then
-                if answered then
-                    return response
                 else
-                    return nil
+                    return continuation(msgtype, author, space, parameter)
                 end
-            else
-                return continuation(msgtype, parameter, author, space)
             end
         end
     end
@@ -225,22 +252,44 @@ local spheres = {
 --  external interface  ------------------------------------------------------------------------------------------------
 
 local processor = function () error("spondeios processing not initialized!") end
+local actor = function () error("spondeios acting not initialized!") end
+
+local function getsphere(wrapper)
+    return (spheres[wrapper] or (type(wrapper) == "function" and wrapper) or spheres.id)
+end
 
 function init(name, msg, character, wrappers)
     self = name or "localhost"
     message = msg or function (type, recipient, space, parameter)
-        process(type, parameter, recipient, space)
+        process(type, recipient, space, parameter)
         return true
     end
     processor = (spaces[character] or (type(character) == "function" and character) or spaces.memory)()
     wrappers = wrappers or defaultspheres
     for i,wrapper in ipairs(wrappers) do
-        processor = (spheres[wrapper] or (type(wrapper) == "function" and wrapper) or spheres.id)(processor)
+        processor = getsphere(wrapper)(processor, "in") or spheres.id(processor)
     end
+    actor = message
+    for i,wrapper in ipairs(reverse(wrappers)) do
+        actor = getsphere(wrapper)(actor, "out") or spheres.id(actor)
+    end
+end
+
+function term()
+    --TODO: actually empty all the data structures
+    return true
 end
 
 function process(...)
     return processor(unpack(arg))
+end
+
+function act(type, recipient, space, parameter)
+    assert(type == "get" or type == "qry" or type == "put", "Wrong message type \""..type.."\"")
+    if recipient == me() then
+        return process(type, recipient, space, parameter)
+    end
+    return actor(type, recipient, space, parameter)
 end
 
 function friends()
@@ -248,7 +297,7 @@ function friends()
 end
 
 function await(predicate)
-    net.desires[predicate] = {}
+    net.desires[predicate] = false
     return predicate
 end
 

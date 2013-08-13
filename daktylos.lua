@@ -155,7 +155,7 @@ function respond(tries)
 		assert(codes[codename], "received message with invalid encoding \""..codename.."\"") --TODO: make more tolerant later?
 		if msg then
 			local mess = codes[codename].decode(string.gsub(msg, "^(%w*)\n\n", ""))
-			local resp = processor(mess.type, mess.parameter, mess.author, mess.space, mess.recipient)
+			local resp = processor(mess.type, mess.author, mess.space, mess.parameter, mess.recipient)
 			if resp then
 				return ack(mess.author, mess.space, resp)
 			end
