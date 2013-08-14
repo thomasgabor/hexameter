@@ -9,12 +9,12 @@ local type = type
 local assert = assert
 local pairs = pairs
 local ipairs = ipairs
-local print = print
+--local print = print
 
 module(...)
 
 local defaultport    = 55555
-local defaultspheres = {"networking", "forwarding", "flagging", "verbose"}
+local defaultspheres = {"networking", "forwarding", "flagging", "verbose"} -- "networking" is necessary for hexameter!
 
 --  basic functionality  -----------------------------------------------------------------------------------------------
 
@@ -55,11 +55,11 @@ function me()
     return self
 end
 
-tell = behavior.act
+tell = behavior.act  --send over medium, return success
 
-respond = medium.respond
+respond = medium.respond  --react to medium traffic, return if reaction took place
 
-process = behavior.process -- works as a shortcut for tell(me(), ...)
+process = behavior.process  --react to given transmission locally, return result item list
 
 
 --  communication patterns  --------------------------------------------------------------------------------------------
@@ -79,9 +79,9 @@ end
 
 friends = behavior.friends
 
-function ask(type, recipient, space, parameter) --enjambement
-    local key = behavior.await(function(_, author, respace)
-        return recipient == author and space == respace --TODO: insert better check for match(?)
+function oldask(type, recipient, space, parameter) --deprecated
+    local key = behavior.await(function(author, respace, _)
+        return recipient == author and space == respace --rough match, for guaranteed unique match use unique space flag
     end)
     local sent = tell(type, recipient, space, parameter)
     local response = false
@@ -90,6 +90,17 @@ function ask(type, recipient, space, parameter) --enjambement
         response = behavior.fetch(key)
     end
     behavior.giveup(key)
+    return response
+end
+
+function ask(type, recipient, space, parameter) --formerly known as "enjambement"
+    process("put", me(), "net.lust", {{author=recipient, space=space}})
+    local sent = tell(type, recipient, space, parameter)
+    local response = false
+    while sent and not response do
+        respond(0)
+        response = process("get", me(), "net.lust", {{author=recipient, space=space}})
+    end
     return response
 end
 

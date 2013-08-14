@@ -89,7 +89,7 @@ local function getsocket(target)
 		end
 	end
 	local socket = context:socket(zmq.DEALER)
-    --socket:setopt(zmq.LINGER, 0) --no idea why zmq binding doesn't recognize this option
+    --socket:setopt(zmq.LINGER, 0) --no idea why the zmq binding doesn't recognize this option
 	socket:connect(target)
 	if socketcache > 0 then
 		table.insert(talksockets, {socket=socket, target=target})
@@ -117,8 +117,6 @@ function message(type, recipient, space, parameter)
 		space=space
 	})
     local socket = getsocket("tcp://"..resolver(recipient))
-	--socket:send("", zmq.SNDMORE)
-	--return socket:send(msg)
 	return multisend(socket, "", msg)
 end
 

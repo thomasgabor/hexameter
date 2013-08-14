@@ -61,7 +61,7 @@ end
 
 --  behavior library  --------------------------------------------------------------------------------------------------
 
-local net = {friends={}, desires={}}
+local net = {friends={}, desires={}, lust={}}
 
 local spaces = {
     trivial = function ()
@@ -126,13 +126,14 @@ local spheres = {
     flagging = function (continuation, direction)
         if direction == "in" then
             return function (msgtype, author, space, parameter)
+                local newspace, _ = string.match(space, "^([^#]*)(.*)$")
                 local response = {}
                 local requested = false
                 local answered = false
                 for i,item in ipairs(parameter) do
                     requested = true
                     local newitem, flags = filter(item, "^#")
-                    local answers = continuation(msgtype, author, space, {newitem})
+                    local answers = continuation(msgtype, author, newspace, {newitem})
                     if answers then
                         answered = true
                         for a,answer in ipairs(answers) do
@@ -154,7 +155,7 @@ local spheres = {
                         return nil
                     end
                 else
-                    return continuation(msgtype, author, space, parameter)
+                    return continuation(msgtype, author, newspace, parameter)
                 end
             end
         end
@@ -165,11 +166,17 @@ local spheres = {
                 if type == "ack" then
                     local answered = false
                     for desire,answers in pairs(net.desires) do
-                        if desire(parameter, author, space) then
+                        if desire(author, space, parameter) then
                             net.desires[desire] = answers or {}
                             for i,item in ipairs(parameter) do
                                 table.insert(net.desires[desire], item)
                             end
+                        end
+                    end
+                    if net.lust[author] and net.lust[author][space] ~= nil then
+                        net.lust[author][space] = net.lust[author][space] or {}
+                        for i,item in ipairs(parameter) do
+                            table.insert(net.lust[author][space], item)
                         end
                     end
                     return nil
@@ -195,6 +202,34 @@ local spheres = {
                         for i,item in ipairs(parameter) do
                             if item.name then
                                 net.friends[item.name] = item.active or nil
+                            end
+                        end
+                        return parameter
+                    end
+                end
+                if space == "net.lust" then
+                    if type == "get" then
+                        local response = {}
+                        local answered = false
+                        for i,item in ipairs(parameter) do
+                            if item.author and item.space and net.lust[item.author] and net.lust[item.author][item.space] then
+                                answered = true
+                                for a,answer in ipairs(net.lust[item.author][item.space]) do
+                                    table.insert(response, answer)
+                                end
+                            end
+                        end
+                        if answered then
+                            return response
+                        else
+                            return nil
+                        end
+                    end
+                    if type == "put" then
+                        for i,item in ipairs(parameter) do
+                            if item.author and item.space then
+                                net.lust[item.author] = net.lust[item.author] or {}
+                                net.lust[item.author][item.space] = false
                             end
                         end
                         return parameter
@@ -273,10 +308,14 @@ function init(name, msg, character, wrappers)
     for i,wrapper in ipairs(reverse(wrappers)) do
         actor = getsphere(wrapper)(actor, "out") or spheres.id(actor)
     end
+    return true
 end
 
 function term()
-    --TODO: actually empty all the data structures
+    self = nil
+    net = {friends={}, desires={}, lust={}}
+    processor = function () error("spondeios processing not initialized!") end
+    actor = function () error("spondeios acting not initialized!") end
     return true
 end
 
@@ -287,25 +326,26 @@ end
 function act(type, recipient, space, parameter)
     assert(type == "get" or type == "qry" or type == "put", "Wrong message type \""..type.."\"")
     if recipient == me() then
-        return process(type, recipient, space, parameter)
+        process(type, recipient, space, parameter)
+        return true
     end
     return actor(type, recipient, space, parameter)
 end
 
-function friends()
+function friends() --deprecated, TODO: remove this function in favor of process("qry", me(), "net.friends", {}) or sth like this in hexameter
     return net.friends
 end
 
-function await(predicate)
+function await(predicate) --possibly deprecated
     net.desires[predicate] = false
     return predicate
 end
 
-function fetch(key)
+function fetch(key) --possibly deprecated
     return net.desires[key]
 end
 
-function giveup(key)
+function giveup(key) --possibly deprecated
     net.desires[key] = nil
 end
 
