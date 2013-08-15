@@ -110,7 +110,7 @@ commands = {
             hexameter.meet(target)
         end,
         friends = function ()
-            print("==  ", serialize.data(hexameter.friends()))
+            print("==  ", serialize.literal(hexameter.friends()))
         end,
         checkex = function (argument)
             local parameter, space = extract(argument)

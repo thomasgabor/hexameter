@@ -103,7 +103,7 @@ local spaces = {
 }
 
 local spheres = {
-    id = function (continuation)
+    id = function (continuation, _)
         return function (msgtype, author, space, parameter)
             return continuation(msgtype, author, space, parameter)
         end
@@ -187,7 +187,7 @@ local spheres = {
                         for i,filter in ipairs(parameter) do
                             for component,active in pairs(net.friends) do
                                 if active == filter.active then 
-                                    if string.match(component, filter.name) then
+                                    if string.match(component, filter.name or "") then
                                         if type == "get" then
                                             net.friends[component] = nil
                                         end
@@ -284,7 +284,7 @@ local spheres = {
 }
 
 
---  external interface  ------------------------------------------------------------------------------------------------
+--  hexameter interface  -----------------------------------------------------------------------------------------------
 
 local processor = function () error("spondeios processing not initialized!") end
 local actor = function () error("spondeios acting not initialized!") end
@@ -319,6 +319,10 @@ function term()
     return true
 end
 
+function me()
+    return self
+end
+
 function process(...)
     return processor(unpack(arg))
 end
@@ -332,9 +336,8 @@ function act(type, recipient, space, parameter)
     return actor(type, recipient, space, parameter)
 end
 
-function friends() --deprecated, TODO: remove this function in favor of process("qry", me(), "net.friends", {}) or sth like this in hexameter
-    return net.friends
-end
+
+--  additional interface  ----------------------------------------------------------------------------------------------
 
 function await(predicate) --possibly deprecated
     net.desires[predicate] = false
@@ -347,8 +350,4 @@ end
 
 function giveup(key) --possibly deprecated
     net.desires[key] = nil
-end
-
-function me()
-    return self
 end

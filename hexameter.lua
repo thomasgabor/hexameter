@@ -14,11 +14,13 @@ local ipairs = ipairs
 module(...)
 
 local defaultport    = 55555
-local defaultspheres = {"networking", "forwarding", "flagging", "verbose"} -- "networking" is necessary for hexameter!
-
---  basic functionality  -----------------------------------------------------------------------------------------------
+local defaultspheres = {"networking", "forwarding", "flagging", "verbose"}
+-- "networking" is necessary for hexameter! "flagging" is highly recommended!
 
 local self
+
+
+--  basic functionality  -----------------------------------------------------------------------------------------------
 
 function init(name, callback, spheres, codename)
     local network
@@ -57,12 +59,23 @@ end
 
 tell = behavior.act  --send over medium, return success
 
-respond = medium.respond  --react to medium traffic, return if reaction took place
-
 process = behavior.process  --react to given transmission locally, return result item list
+
+respond = medium.respond  --react to medium traffic, return if reaction took place
 
 
 --  communication patterns  --------------------------------------------------------------------------------------------
+
+function ask(type, recipient, space, parameter) --formerly known as "enjambement"
+    process("put", me(), "net.lust", {{author=recipient, space=space}})
+    local sent = tell(type, recipient, space, parameter)
+    local response = false
+    while sent and not response do
+        respond(0)
+        response = process("get", me(), "net.lust", {{author=recipient, space=space}})
+    end
+    return response
+end
 
 function meet(component)
     put(me(), "net.friends", {{name=component, active=true}})
@@ -77,40 +90,16 @@ function meet(component)
     end
 end
 
-friends = behavior.friends
-
-function oldask(type, recipient, space, parameter) --deprecated
-    local key = behavior.await(function(author, respace, _)
-        return recipient == author and space == respace --rough match, for guaranteed unique match use unique space flag
-    end)
-    local sent = tell(type, recipient, space, parameter)
-    local response = false
-    while sent and not response do
-        respond(0)
-        response = behavior.fetch(key)
-    end
-    behavior.giveup(key)
-    return response
+function friends()
+    return process("qry", me(), "net.friends", {{active=true}}) 
 end
 
-function ask(type, recipient, space, parameter) --formerly known as "enjambement"
-    process("put", me(), "net.lust", {{author=recipient, space=space}})
-    local sent = tell(type, recipient, space, parameter)
-    local response = false
-    while sent and not response do
-        respond(0)
-        response = process("get", me(), "net.lust", {{author=recipient, space=space}})
-    end
-    return response
-end
-
-function converse(estimate) --this function is a relict and should probably not be used
+function converse(estimate) --this function is a relict and may be removed form future versions, use with care!
     estimate = estimate or 10
     for i=1,10 do
         respond()
     end
 end
-
 
 
 --  shortcuts  ---------------------------------------------------------------------------------------------------------

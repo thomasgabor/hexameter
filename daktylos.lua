@@ -26,16 +26,6 @@ local context, self, port, processor, resolver, coder, respondsocket, talksocket
 
 --  basic function library  --------------------------------------------------------------------------------------------
 
-local function address(component)
-	if type(component) == "string" then
-		return component
-	end
-	if type(component) == "number" then
-		return "localhost:"..component
-	end
-	error("Given argument "..serialize.presentation(component).." is not a address.")
-end
-
 local codes = {
     lua = {
         encode = serialize.data,
@@ -46,8 +36,61 @@ local codes = {
     json = json
 }
 
+local function address(component)  --default address resolution
+	if type(component) == "string" then
+		return component
+	end
+	if type(component) == "number" then
+		return "localhost:"..component
+	end
+	error("Given argument "..serialize.presentation(component).." is not a address.")
+end
 
---  external interface  ------------------------------------------------------------------------------------------------
+
+--  protocol functionality ---------------------------------------------------------------------------------------------
+
+local function getsocket(target)
+    if socketcache > 0 then
+		for _,talksocketdata in ipairs(talksockets) do
+			if talksocketdata.target == target then
+				return talksocketdata.socket
+			end
+		end
+		if #talksockets == socketcache then
+			talksockets[1].socket:close()
+			table.remove(talksockets, 1)
+		end
+	end
+	local socket = context:socket(zmq.DEALER)
+    --socket:setopt(zmq.LINGER, 0) --no idea why the zmq binding doesn't recognize this option
+	socket:connect(target)
+	if socketcache > 0 then
+		table.insert(talksockets, {socket=socket, target=target})
+	end
+	return socket
+end
+
+local function multisend(socket, ...)  --send a message consisting of mutliple frames
+	for i,frame in ipairs(arg) do
+		if i == #arg then
+			return socket:send(frame)
+		else
+			socket:send(frame, zmq.SNDMORE)
+		end
+	end
+end
+
+local function multirecv(socket, recvoptions)  --receive all frames of a message
+	local frames = {}
+	frames[#frames+1] = socket:recv(recvoptions)
+	while socket:getopt(zmq.RCVMORE) == 1 do
+		frames[#frames+1] = socket:recv()
+	end
+	return unpack(frames)
+end
+
+
+--  hexameter interface  -----------------------------------------------------------------------------------------------
 
 function init(name, callback, codename, network)
     context = zmq.init(1)
@@ -76,35 +119,8 @@ function term()
 	context:term()
 end
 
-local function getsocket(target)
-    if socketcache > 0 then
-		for _,talksocketdata in ipairs(talksockets) do
-			if talksocketdata.target == target then
-				return talksocketdata.socket
-			end
-		end
-		if #talksockets == socketcache then
-			talksockets[1].socket:close()
-			table.remove(talksockets, 1)
-		end
-	end
-	local socket = context:socket(zmq.DEALER)
-    --socket:setopt(zmq.LINGER, 0) --no idea why the zmq binding doesn't recognize this option
-	socket:connect(target)
-	if socketcache > 0 then
-		table.insert(talksockets, {socket=socket, target=target})
-	end
-	return socket
-end
-
-local function multisend(socket, ...)
-	for i,frame in ipairs(arg) do
-		if i == #arg then
-			return socket:send(frame)
-		else
-			socket:send(frame, zmq.SNDMORE)
-		end
-	end
+function me()
+    return self
 end
 
 function message(type, recipient, space, parameter)
@@ -120,23 +136,6 @@ function message(type, recipient, space, parameter)
 	return multisend(socket, "", msg)
 end
 
-function syn(recipient, space, parameter)
-    return message("syn", recipient, space, parameter)
-end
-
-function ack(recipient, space, parameter)
-    return message("ack", recipient, space, parameter)
-end
-
-local function multirecv(socket, recvoptions)
-	local frames = {}
-	frames[#frames+1] = socket:recv(recvoptions)
-	while socket:getopt(zmq.RCVMORE) == 1 do
-		frames[#frames+1] = socket:recv()
-	end
-	return unpack(frames)
-end
-
 function respond(tries)
     tries = tries or recvtries
 	local src, del, msg --deliberately set to nil
@@ -150,7 +149,7 @@ function respond(tries)
 	end
 	if msg then
 		local codename = string.match(msg, "^(%w*)\n\n") or ""
-		assert(codes[codename], "received message with invalid encoding \""..codename.."\"") --TODO: make more tolerant later?
+		assert(codes[codename], "received message with invalid encoding \""..codename.."\"")
 		if msg then
 			local mess = codes[codename].decode(string.gsub(msg, "^(%w*)\n\n", ""))
 			local resp = processor(mess.type, mess.author, mess.space, mess.parameter, mess.recipient)
@@ -164,6 +163,13 @@ function respond(tries)
 	end
 end
 
-function me()
-    return self
+
+--  additional interface -----------------------------------------------------------------------------------------------
+
+function syn(recipient, space, parameter)
+    return message("syn", recipient, space, parameter)
+end
+
+function ack(recipient, space, parameter)
+    return message("ack", recipient, space, parameter)
 end
