@@ -1,0 +1,10 @@
+(format t "Hello, cave!")
+(format t "~&")
+(let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp"
+                                       (user-homedir-pathname))))
+  (when (probe-file quicklisp-init)
+    (load quicklisp-init)))
+(ql:quickload :pzmq)
+(require :hexameter)
+(in-package :hexameter)
+(init)

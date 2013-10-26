@@ -12,7 +12,7 @@ local loadstring = loadstring
 local unpack = unpack
 local ipairs = ipairs
 local pairs = pairs
---local print = print
+local print = print
 
 module(...)
 
@@ -132,6 +132,9 @@ function message(type, recipient, space, parameter)
 		parameter=parameter,
 		space=space
 	})
+	--print("%%")
+	--print(msg)
+	--print("%%")
     local socket = getsocket("tcp://"..resolver(recipient))
 	return multisend(socket, "", msg)
 end
@@ -148,6 +151,9 @@ function respond(tries)
 		i = i + 1
 	end
 	if msg then
+		--print("%%")
+		--print(msg)
+		--print("%%")
 		local codename = string.match(msg, "^(%w*)\n\n") or ""
 		assert(codes[codename], "received message with invalid encoding \""..codename.."\"")
 		if msg then

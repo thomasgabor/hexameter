@@ -104,8 +104,8 @@ local spaces = {
 
 local spheres = {
     id = function (continuation, _)
-        return function (msgtype, author, space, parameter)
-            return continuation(msgtype, author, space, parameter)
+        return function (msgtype, author, space, parameter, recipient)
+            return continuation(msgtype, author, space, parameter, recipient)
         end
     end,
     verbose = function (continuation, direction)

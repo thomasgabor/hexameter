@@ -139,7 +139,9 @@ io.write("::  Hades running. Please exit with Ctrl+C.\n")
 
 
 while true do
+    --print("$$$$", me)
     hexameter.respond(0)
+    --print("!!!!")
     --print("**  current friends:", serialize.literal(hexameter.friends())) --command-line option to turn this on?
     local alltocked = true
     for t,thing in pairs(world) do
