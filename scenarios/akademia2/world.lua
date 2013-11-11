@@ -9,6 +9,31 @@ local settings = {
     }
 }
 
+-- static world description library
+
+statics = {}
+
+local function place(object, x, y)
+    statics[x] = statics[x] or {}
+    statics[x][y] = statics[x][y] or {}
+    table.insert(statics[x][y], object)
+end
+
+local function nest()
+    return {
+        class = "nest"
+    }
+end
+
+local function resource()
+    return {
+        class = "resource"
+    }
+end
+
+
+-- sensor/motor library
+
 local spot = {
     type = "spot",
     class = "sensor",
@@ -39,7 +64,19 @@ local guts = {
     type = "guts",
     class = "sensor",
     measure = function (me, world, control)
-        return {goal="live", features={}}
+        return {goal=me.state.goal, features={}}
+    end
+}
+
+local look = {
+    type = "look",
+    class = "sensor",
+    measure = function (me, world, control)
+        if statics[me.state.x] and statics[me.state.x][me.state.y] then
+            return statics[me.state.x][me.state.y]
+        else
+            return {}
+        end
     end
 }
 
@@ -71,10 +108,20 @@ local shout = {
             world[control.name].state.attention = control.content
         else
             for _,name in pairs(sensor(me, "spot")) do
-                world[name].state.attention = control.content
+                if can(world[name], listen) then
+                    world[name].state.attention = control.content
+                end
             end
         end
         return me
+    end
+}
+
+local strive = {
+    type = "strive",
+    class = "motor",
+    run = function(me, _, control)
+        me.state.goal = control.goal or me.state.goal
     end
 }
 
@@ -95,6 +142,16 @@ local procrastinate = {
     end
 }
 
+
+-- static world configuration
+
+place(nest(),      0,  0)
+place(resource(),  9,  7)
+place(resource(), -5, -7)
+
+
+-- dynamic world configuration
+
 world = {
     observ = {
         sensors = {},
@@ -105,27 +162,30 @@ world = {
         }
     },
     platon = {
-        sensors = {spot, guts},
-        motors = {move, shout, procrastinate},
+        sensors = {spot, guts, look},
+        motors = {move, shout, procrastinate, strive},
         state = {
             x = 1,
-            y = 1
+            y = 1,
+            goal = "live"
         }
     },
     math1 = {
-        sensors = {spot, listen, guts},
-        motors = {move, forget, procrastinate},
+        sensors = {spot, listen, guts, look},
+        motors = {move, forget, procrastinate, strive},
         state = {
             x = 5,
-            y = 5
+            y = 5,
+            goal = "live"
         }
     },
     math2 = {
-        sensors = {spot, listen, guts},
-        motors = {move, forget, procrastinate},
+        sensors = {spot, listen, guts, look},
+        motors = {move, forget, procrastinate, strive},
         state = {
             x = 7,
-            y = 7
+            y = 7,
+            goal = "live"
         }
     }
 }

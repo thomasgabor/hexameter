@@ -125,6 +125,26 @@ motor = function(me, type, control)
     return nil
 end
 
+can = function(me, action)
+    if action.class == "sensor" then
+        for _,sensor in pairs(me.sensors) do
+            if sensor.type == action.type then
+                return true
+            end
+        end
+        return false
+    end
+    if action.class == "motor" then
+        for _,motor in pairs(me.motors) do
+            if motor.type == action.type then
+                return true
+            end
+        end
+        return false
+    end
+    return false
+end
+
 for t,thing in pairs(world) do
     thing.sensors = thing.sensors or {}
     thing.motors = thing.motors or {}
