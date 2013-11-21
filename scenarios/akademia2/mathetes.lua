@@ -61,14 +61,28 @@ return function(realm, me)
                     end
                 elseif alternative.class == "commit feature" then
                     local committed = false
-                    for _,feature in pairs(feeling.features) do
-                        if alternative[feature] then
-                            committed = true
-                            actions = interpret(alternative[feature], body, feeling, actions)
+                    for _,branch in pairs(alternative) do
+                        if (type(branch) == "table") and branch.on and branch["do"] then
+                            local pattern = branch.on
+                            local action = branch["do"]
+                            if type(pattern) == "table" then
+                                local matching = true
+                                for feature,value in pairs(pattern) do
+                                    if not (feeling.features[feature] == value) then
+                                        matching = false
+                                    end
+                                end
+                                if matching then
+                                    committed = true
+                                    actions = interpret(action, body, feeling, actions)
+                                end
+                            end
                         end
                     end
                     if committed then
                         return actions
+                    elseif alternative.otherwise then
+                        return interpret(alternative.otherwise, body, feeling, actions)
                     end
                 elseif alternative.class == "commit best" then
                     if alternative.of then

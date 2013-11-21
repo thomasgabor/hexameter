@@ -19,15 +19,63 @@ local function place(object, x, y)
     table.insert(statics[x][y], object)
 end
 
+local function placemultiple(object, xs, ys)
+    if not (type(xs) == "table") then xs = {xs} end
+    if not (type(ys) == "table") then ys = {ys} end
+    for _,x in pairs(xs) do
+        for _,y in pairs(ys) do
+            place(object, x, y)
+        end
+    end
+end
+
+local function range(start, stop, step)
+    step = step or 1
+    local result = {}
+    local i = start
+    while i <= stop do
+        table.insert(result, i)
+        i = i + step
+    end
+    return result
+end
+
+local function accessible(x, y)
+    if not statics[x] then return true end
+    if not statics[x][y] then return true end
+    for _, object in pairs(statics[x][y]) do
+        if not object.accessible then
+            return false
+        end
+    end
+    return true
+end
+
+local function space()
+    return {
+        class = "space",
+        accessible = true
+    }
+end
+
 local function nest()
     return {
-        class = "nest"
+        class = "nest",
+        accessible = true
     }
 end
 
 local function resource()
     return {
-        class = "resource"
+        class = "resource",
+        accessible = true
+    }
+end
+
+local function wall()
+    return {
+        class = "wall",
+        accessible = false
     }
 end
 
@@ -64,7 +112,7 @@ local guts = {
     type = "guts",
     class = "sensor",
     measure = function (me, world, control)
-        return {goal=me.state.goal, features={}}
+        return {goal=me.state.goal, features={x=me.state.x,y=me.state.y}}
     end
 }
 
@@ -84,17 +132,23 @@ local move = {
     type = "move",
     class = "motor",
     run = function(me, _, control)
+        local newx = me.state.x
+        local newy = me.state.y
         if control.up then
-            me.state.y = me.state.y + 1
+            newy = me.state.y - 1
         end
         if control.down then
-            me.state.y = me.state.y - 1
+            newy = me.state.y + 1
         end
         if control.right then
-            me.state.x = me.state.x + 1
+            newx = me.state.x + 1
         end
         if control.left then
-            me.state.x = me.state.x - 1
+            newx = me.state.x - 1
+        end
+        if accessible(newx, newy) then
+            me.state.x = newx
+            me.state.y = newy
         end
         return me
     end
@@ -148,6 +202,10 @@ local procrastinate = {
 place(nest(),      0,  0)
 place(resource(),  9,  7)
 place(resource(), -5, -7)
+placemultiple(wall(), range(-1, 7),           -1)
+placemultiple(wall(),           -1, range(-1, 7))
+placemultiple(wall(), range(-1, 7),            8)
+placemultiple(wall(),            8, range(-1, 7))
 
 
 -- dynamic world configuration
