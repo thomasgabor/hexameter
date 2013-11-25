@@ -154,7 +154,7 @@ for t,thing in pairs(world) do
     thing.tocked = thing.tocked or 0
 end
 
-hexameter.init(me, time)
+hexameter.init(me, time, {"networking", "forwarding", "flagging"})
 io.write("::  Hades running. Please exit with Ctrl+C.\n")
 
 
@@ -187,7 +187,7 @@ while true do
                 thing.tocked = thing.tocked - 1
             end
             io.write("    state of "..t.."\n")
-            io.write("       "..serialize.presentation(thing.state).."\n")
+            io.write("       "..(thing.print and thing.print(thing) or serialize.presentation(thing.state)).."\n")
         end
         io.write("..  .......................................\n\n")
         next = {}

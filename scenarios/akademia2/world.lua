@@ -9,6 +9,15 @@ local settings = {
     }
 }
 
+local explain = function (body)
+    local explanation = ""
+    explanation = explanation.."position:  "..body.state.x..","..body.state.y.."\n"
+    explanation = explanation.."      mood:      "..body.state.goal.."\n"
+    explanation = explanation.."      target:    "..(body.state.targetx or "-")..","..(body.state.targety or "-").."\n"
+    explanation = explanation.."      attention: "..(body.state.attention and "<taught>" or "<clueless>").."\n"
+    return explanation
+end
+
 -- static world description library
 
 statics = {}
@@ -112,7 +121,7 @@ local guts = {
     type = "guts",
     class = "sensor",
     measure = function (me, world, control)
-        return {goal=me.state.goal, features={x=me.state.x,y=me.state.y}}
+        return {goal=me.state.goal, features={x=me.state.x,y=me.state.y,targetx=me.state.targetx or 0,targety=me.state.taregty or 0}}
     end
 }
 
@@ -134,6 +143,12 @@ local move = {
     run = function(me, _, control)
         local newx = me.state.x
         local newy = me.state.y
+        if control.dir then
+            local trans = {n="up", e="right", s="down", w="left"}
+            if trans[control.dir] then
+                control[trans[control.dir]] = 1
+            end
+        end
         if control.up then
             newy = me.state.y - 1
         end
@@ -235,16 +250,20 @@ world = {
             x = 5,
             y = 5,
             goal = "live"
-        }
+        },
+        print = explain
     },
     math2 = {
         sensors = {spot, listen, guts, look},
         motors = {move, forget, procrastinate, strive},
         state = {
-            x = 7,
-            y = 7,
-            goal = "live"
-        }
+            x = 1,
+            y = 2,
+            goal = "navigate",
+            targetx = 0,
+            targety = 0
+        },
+        print = explain
     }
 }
 
