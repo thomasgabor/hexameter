@@ -164,12 +164,15 @@ while true do
     --print("!!!!")
     --print("**  current friends:", serialize.literal(hexameter.friends())) --command-line option to turn this on?
     local alltocked = true
+    local status = "**  [tock status] "
     for t,thing in pairs(world) do
         if not (thing.tocked == auto) then
           alltocked = alltocked and (thing.tocked > 0)
-          print("**  [tock status] ", t, (thing.tocked > 0) and "tocked ("..thing.tocked..")" or "not tocked")
+          status = status.."    "..t..": "..((thing.tocked > 0) and "tocked ("..thing.tocked..")" or "not tocked")
         end
     end
+    status = status.."\n"
+    io.write(status)
     if alltocked then
         clock = clock + 1
         io.write("\n\n\n..  Starting discrete time period #"..clock.."...\n")
@@ -187,7 +190,7 @@ while true do
                 thing.tocked = thing.tocked - 1
             end
             io.write("    state of "..t.."\n")
-            io.write("       "..(thing.print and thing.print(thing) or serialize.presentation(thing.state)).."\n")
+            io.write("      "..(thing.print and thing.print(thing) or serialize.presentation(thing.state)).."\n")
         end
         io.write("..  .......................................\n\n")
         next = {}
