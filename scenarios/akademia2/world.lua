@@ -15,6 +15,8 @@ local explain = function (body)
     explanation = explanation.."      mood:      "..body.state.goal.."\n"
     explanation = explanation.."      target:    "..(body.state.targetx or "-")..","..(body.state.targety or "-").."\n"
     explanation = explanation.."      attention: "..(body.state.attention and "<taught>" or "<clueless>").."\n"
+    explanation = explanation.."      carrying:  "..(body.state.carrying or 0).."\n"
+    explanation = explanation.."      collected: "..(body.state.collected or 0).."\n"
     return explanation
 end
 
@@ -47,6 +49,17 @@ local function range(start, stop, step)
         i = i + step
     end
     return result
+end
+
+local function thereis(x, y, class)
+    if not statics[x] then return false end
+    if not statics[x][y] then return false end
+    for _, object in pairs(statics[x][y]) do
+        if object.class == class then
+            return true
+        end
+    end
+    return false
 end
 
 local function accessible(x, y)
@@ -165,6 +178,19 @@ local move = {
             me.state.x = newx
             me.state.y = newy
         end
+        if thereis(me.state.x, me.state.y, "resource") then
+            me.state.targetx = 0
+            me.state.targety = 0
+            if (not me.state.carrying) or (me.state.carrying == 0) then
+                me.state.carrying = 1
+            end
+        end
+        if thereis(me.state.x, me.state.y, "nest") then
+            me.state.targetx = 3
+            me.state.targety = 3
+            me.state.collected = (me.state.collected or 0) + me.state.carrying
+            me.state.carrying = 0
+        end
         return me
     end
 }
@@ -215,7 +241,7 @@ local procrastinate = {
 -- static world configuration
 
 place(nest(),      0,  0)
-place(resource(),  9,  7)
+place(resource(),  3,  3)
 place(resource(), -5, -7)
 placemultiple(wall(), range(-1, 7),           -1)
 placemultiple(wall(),           -1, range(-1, 7))
@@ -247,9 +273,11 @@ world = {
         sensors = {spot, listen, guts, look},
         motors = {move, forget, procrastinate, strive},
         state = {
-            x = 5,
-            y = 5,
-            goal = "live"
+            x = 2,
+            y = 2,
+            goal = "navigate",
+            targetx = 0,
+            targety = 0
         },
         print = explain
     },
