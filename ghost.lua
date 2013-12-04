@@ -217,7 +217,7 @@ else
     me = io.read("*line")
 end
 
-hexameter.init(me)
+hexameter.init(me, nil, {"networking", "forwarding", "flagging", "verbose"})
 target = me
 environment = "standard"
 focus = ""

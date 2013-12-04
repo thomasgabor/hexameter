@@ -14,8 +14,8 @@ local ipairs = ipairs
 module(...)
 
 local defaultport    = 55555
-local defaultspheres = {"networking", "forwarding", "flagging", "verbose"}
--- "networking" is necessary for hexameter! "flagging" is highly recommended!
+local defaultspheres = {"networking", "forwarding", "flagging"}
+-- "networking" is necessary for hexameter! "flagging" is highly recommended! "verbose" is useful for testing!
 
 local self
 

@@ -111,7 +111,7 @@ return function(realm, me)
             plan = newplan
         end
         local feeling = hexameter.ask("qry", realm, "sensors", {{body=body, type="guts"}})[1].value
-        print("&&  guts say ", feeling.goal)
+        print("&&  guts say ", feeling.goal, " with ", show(feeling.features))
         hexameter.tell("put", realm, "motors", interpret(plan, body, feeling))
     end
 end

@@ -154,7 +154,7 @@ for t,thing in pairs(world) do
     thing.tocked = thing.tocked or 0
 end
 
-hexameter.init(me, time, {"networking", "forwarding", "flagging"})
+hexameter.init(me, time)
 io.write("::  Hades running. Please exit with Ctrl+C.\n")
 
 

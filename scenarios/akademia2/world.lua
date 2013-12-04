@@ -134,7 +134,15 @@ local guts = {
     type = "guts",
     class = "sensor",
     measure = function (me, world, control)
-        return {goal=me.state.goal, features={x=me.state.x,y=me.state.y,targetx=me.state.targetx or 0,targety=me.state.taregty or 0}}
+        return {
+            goal=me.state.goal,
+            features={
+                x=me.state.x,
+                y=me.state.y,
+                targetx=me.state.targetx or 0,
+                targety=me.state.targety or 0
+            }
+        }
     end
 }
 
@@ -174,6 +182,7 @@ local move = {
         if control.left then
             newx = me.state.x - 1
         end
+        --print("$$$$  ",me.name, me.state.x,me.state.y,"-->",newx,newy)
         if accessible(newx, newy) then
             me.state.x = newx
             me.state.y = newy
@@ -186,9 +195,9 @@ local move = {
             end
         end
         if thereis(me.state.x, me.state.y, "nest") then
-            me.state.targetx = 3
-            me.state.targety = 3
-            me.state.collected = (me.state.collected or 0) + me.state.carrying
+            me.state.targetx = 2
+            me.state.targety = 2
+            me.state.collected = (me.state.collected or 0) + (me.state.carrying or 0)
             me.state.carrying = 0
         end
         return me
@@ -241,7 +250,7 @@ local procrastinate = {
 -- static world configuration
 
 place(nest(),      0,  0)
-place(resource(),  3,  3)
+place(resource(),  2,  2)
 place(resource(), -5, -7)
 placemultiple(wall(), range(-1, 7),           -1)
 placemultiple(wall(),           -1, range(-1, 7))
@@ -253,6 +262,7 @@ placemultiple(wall(),            8, range(-1, 7))
 
 world = {
     observ = {
+        name = "observ",
         sensors = {},
         motors = {move},
         state = {
@@ -261,6 +271,7 @@ world = {
         }
     },
     platon = {
+        name = "platon",
         sensors = {spot, guts, look},
         motors = {move, shout, procrastinate, strive},
         state = {
@@ -270,11 +281,12 @@ world = {
         }
     },
     math1 = {
+        name = "math1",
         sensors = {spot, listen, guts, look},
         motors = {move, forget, procrastinate, strive},
         state = {
-            x = 2,
-            y = 2,
+            x = 0,
+            y = 1,
             goal = "navigate",
             targetx = 0,
             targety = 0
@@ -282,6 +294,7 @@ world = {
         print = explain
     },
     math2 = {
+        name = "math2",
         sensors = {spot, listen, guts, look},
         motors = {move, forget, procrastinate, strive},
         state = {
