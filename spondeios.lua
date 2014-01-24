@@ -235,6 +235,9 @@ local spheres = {
                         return parameter
                     end
                 end
+                if space == "net.life" then
+                    return parameter
+                end
                 return continuation(type, author, space, parameter)
             end
         end
