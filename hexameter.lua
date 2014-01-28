@@ -77,6 +77,14 @@ function ask(type, recipient, space, parameter) --formerly known as "enjambement
     return response
 end
 
+function wonder(type, recipient, space, parameter) --formerly known as "enjambement"
+    process("put", me(), "net.lust", {{author=recipient, space=space}})
+    local sent = tell(type, recipient, space, parameter)
+    local response = false
+    hexameter.converse()
+    response = process("get", me(), "net.lust", {{author=recipient, space=space}})
+    return response
+end
 function meet(component)
     put(me(), "net.friends", {{name=component, active=true}})
     local friends = ask("qry", component, "net.friends", {{name="", active=true}})
