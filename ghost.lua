@@ -40,6 +40,11 @@ function extract(argument)
     return interpret(parameter), space
 end
 
+function fullextract(argument)
+    local type, parameter, space = string.match(argument, "^%s*(.-)%s+(.-)%s*@%s*(%S+)%s*$")
+    return type, interpret(parameter), space
+end
+
 local function primitive(type)
     return function(argument)
         local parameter, space = extract(argument)
@@ -119,6 +124,33 @@ commands = {
         quit = function ()
             --hexameter.term()
             os.exit()
+        end,
+        tell = function(argument)
+            local type, parameter, space = fullextract(argument)
+            if not type then print("##  Missing or incorrect first argument to tell: type") end
+            if not parameter then print("##  Missing or incorrect second argument to tell: parameter") end
+            if not space then print("##  Missing or incorrect third argument to tell: space, preceded by an @ sign") end
+            hexameter.tell(type, target, space, {parameter})
+        end,
+        ask = function(argument)
+            local type, parameter, space = fullextract(argument)
+            if not type then print("##  Missing or incorrect first argument to ask: type") end
+            if not parameter then print("##  Missing or incorrect second argument to ask: parameter") end
+            if not space then print("##  Missing or incorrect third argument to ask: space, preceded by an @ sign") end
+            local response = hexameter.ask(type, target, space, {parameter})
+            print("**  Received response: ", serialize.literal(response))
+        end,
+        wonder = function(argument)
+            local type, parameter, space = fullextract(argument)
+            if not type then print("##  Missing or incorrect first argument to wonder: type") end
+            if not parameter then print("##  Missing or incorrect second argument to wonder: parameter") end
+            if not space then print("##  Missing or incorrect third argument to wonder: space, preceded by an @ sign") end
+            local response = hexameter.wonder(type, target, space, {parameter})
+            if response then
+                print("**  Received response: ", serialize.literal(response))
+            else
+                print("**  No response received.")
+            end
         end,
         meet = function (argument)
             --argument = string.gsub(argument, "%s", "")
