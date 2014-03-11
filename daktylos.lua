@@ -92,7 +92,15 @@ end
 
 --  hexameter interface  -----------------------------------------------------------------------------------------------
 
-function init(name, callback, codename, network)
+function init(name, callback, codename, network, options)
+	if options then
+		if options.recvtries then
+			recvtries = options.recvtries
+		end
+		if options.socketcache then
+			socketcache = options.socketcache
+		end
+	end
     context = zmq.init(1)
     self = name or "localhost:"..defaultport
     port = string.match(self, "^[%w%p]*:") and string.gsub(self, "^[%w%p]*:", "") or defaultport

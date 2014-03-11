@@ -22,7 +22,7 @@ local self
 
 --  basic functionality  -----------------------------------------------------------------------------------------------
 
-function init(name, callback, spheres, codename)
+function init(name, callback, spheres, codename, options)
     local network
     if type(name) == "string" then
         if string.match(name, ":") then
@@ -42,8 +42,8 @@ function init(name, callback, spheres, codename)
         self = "localhost:"..defaultport
         network = nil
     end
-    local bsuccess = behavior.init(self,   medium.message, callback, spheres or defaultspheres)
-    local msuccess =   medium.init(self, behavior.process, codename, network)
+    local bsuccess = behavior.init(self,   medium.message, callback, spheres or defaultspheres, options)
+    local msuccess =   medium.init(self, behavior.process, codename, network, options)
     return msuccess, bsuccess
 end
 
