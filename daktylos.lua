@@ -95,10 +95,16 @@ end
 function init(name, callback, codename, network, options)
 	if options then
 		if options.recvtries then
-			recvtries = options.recvtries
+			recvtries = tonumber(options.recvtries)
+		end
+		if options.defaultport then
+			defaultport = options.defaultport
+		end
+		if options.defaultcode then
+			defaultcode = options.defaultcode
 		end
 		if options.socketcache then
-			socketcache = options.socketcache
+			socketcache = tonumber(options.socketcache)
 		end
 	end
     context = zmq.init(1)
