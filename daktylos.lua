@@ -7,6 +7,7 @@ local table = table
 
 local error = error
 local type = type
+local tonumber = tonumber
 local assert = assert
 local loadstring = loadstring
 local unpack = unpack
