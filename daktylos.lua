@@ -172,9 +172,10 @@ function respond(tries)
 		local codename = string.match(msg, "^(%w*)\n\n") or ""
 		assert(codes[codename], "received message with invalid encoding \""..codename.."\"")
 		if msg then
-			local mess = codes[codename].decode(string.gsub(msg, "^(%w*)\n\n", ""))
-            assert(mess, "could not decode received message: "..msg)
-			local resp = processor(mess.type, mess.author, mess.space, mess.parameter, mess.recipient)
+            local payload = string.gsub(msg, "^(%w*)\n\n", "")
+			local mess = codes[codename].decode(payload)
+            assert(mess, "could not decode received message with code \""..codename.."\": "..payload)
+            local resp = processor(mess.type, mess.author, mess.space, mess.parameter, mess.recipient)
 			if resp then
 				return ack(mess.author, mess.space, resp)
 			end
