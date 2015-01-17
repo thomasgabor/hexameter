@@ -39,6 +39,7 @@ local function serialize(expr, saved, prologue, index)
 end
 
 function command(name, ...)
+    local arg = {...}
     local call = ""
     local library, prologue, index
     for i,param in pairs(arg) do
@@ -58,6 +59,7 @@ function data(param)
 end
 
 function print(...)
+    local arg = {...}
 	local printargs = {}
 	for i,param in ipairs(arg) do
 		printargs[i] = data(param)

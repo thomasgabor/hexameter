@@ -72,6 +72,7 @@ local function getsocket(target)
 end
 
 local function multisend(socket, ...)  --send a message consisting of mutliple frames
+    local arg = {...}
 	for i,frame in ipairs(arg) do
 		if i == #arg then
 			return socket:send(frame)

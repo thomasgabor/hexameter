@@ -327,6 +327,7 @@ function me()
 end
 
 function process(...)
+    local arg = {...}
     return processor(unpack(arg))
 end
 
